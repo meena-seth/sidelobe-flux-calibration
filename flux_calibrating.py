@@ -72,7 +72,7 @@ y_at_peak = []
 mjds =[]
 peak_idxs = []
 
-for file in crab_norescaled_filepaths[31:32]:
+for file in crab_norescaled_filepaths:
     # Get file name and index 
     filename = file.split("/")
     mjd = filename[7].split("_")[1].split(".")[0]
@@ -121,8 +121,7 @@ for file in crab_norescaled_filepaths[31:32]:
     event_timestamp = cascade_obj.event_time 
     beam_id = int(beam.beam_no)
     ha, y = utils.get_position_from_equatorial(source_ra, source_dec, event_timestamp)
-    
-    pdb.set_trace()
+
     ## PRIMARY BEAM ##
     ha_idx = np.abs(has_list - ha).argmin()
     beam_response = intensity_norm[:, ha_idx] #[1024,]
@@ -130,17 +129,45 @@ for file in crab_norescaled_filepaths[31:32]:
     
     ## CORRECTING ##
     #only calibrating lower half of the band 
-    
-    beam_response[0:20] = beam_response[80:100]
+    f'''
     ds_corrected = ds_masked[0:512] / beam_response[0:512, np.newaxis] 
     ds_calibrated = bf_to_jy(ds_corrected, 1)
     ts_calibrated = np.nanmean(ds_calibrated, axis=0)
+    '''
+    
+    ds_corrected_1 = ds_masked[0:512] / beam_response[0:512, np.newaxis]
+    ds_calibrated_1 = bf_to_jy(ds_corrected_1, 1)
+    ts_calibrated_1 = np.nanmean(ds_calibrated_1, axis=0)
+    peak_idx = np.nanargmax(ts_calibrated_1)
+    
+    max_freq_idx = np.nanargmax(ds_masked[0:512, peak_idx], axis=0)
+    
+    if np.isnan(beam_response[max_freq_idx]):
+        print(f"""
+        Holography at HA = {ha}, freq idx {max_freq_idx} is nan. 
+        Using next frequency slice instead.
+        """)
+        ds_corrected = ds_masked[max_freq_idx] / beam_response[max_freq_idx + 1, np.newaxis]
+        
+    else:
+        ds_corrected = ds_masked[max_freq_idx] / beam_response[max_freq_idx, np.newaxis]
+        
+    ts_calibrated = bf_to_jy(ds_corrected, 1)
+    #ts_calibrated = np.nanmean(ds_calibrated, axis=0)
+    
+    f'''
+    else:
+        ds_corrected = ds_masked[max_freq_idx] / beam_response[max_freq_idx, np.newaxis]
+        
+    ts_calibrated = bf_to_jy(ds_corrected, 1)
+    '''
         
     ## PLOTTING ##
-    peak_idx = np.nanargmax(ts_calibrated)
+    #peak_idx = np.nanargmax(ts_calibrated)
     
     #DS after masking, dedispersing, and calibrating. (Normalised & zoomed in)
     
+    f'''
     plt.figure()
     im = plt.imshow(normalise(ds_calibrated[:, peak_idx-100:peak_idx+100]), aspect='auto',cmap="YlGnBu")
     cbar = plt.colorbar(im)
@@ -148,29 +175,30 @@ for file in crab_norescaled_filepaths[31:32]:
     plt.ylabel("Frequency Bins")
     plt.xlabel("Time sample")
     plt.title(f"{i}_{mjd}, centered on t={peak_idx}") 
-    #plt.savefig(f"{i}_{mjd}_ds_calibrated.png")
+    plt.savefig(f"{i}_{mjd}_ds_calibrated.png")
     
     plt.figure()
-    plt.plot(beam_response[0:512])
+    plt.plot(beam_response[max_freq_idx])
     plt.yscale('log')
-    #plt.savefig("beam_response")
+    plt.savefig("beam_response")
+    '''
         
     #Time series 
     plt.figure()
-    plt.plot(ts_calibrated / 1000 *5)
+    plt.plot(ts_calibrated / 1000)
     plt.ylabel("Flux (kJy)")
     plt.xlabel("Time sample")
-    plt.title(f"{i}_{mjd}")
-    plt.savefig(f"{i}_{mjd}_ts.png")
+    plt.title(f"{i}_{mjd}; freq {max_freq_idx}: {freqs[max_freq_idx]} MHz")
+    plt.savefig(f"{i}_{mjd}_ts_maxfreq.png")
     
     ## CALCULATING STUFF 
     
     ind_max = peak_idx+2*cascade_obj.best_width
     ind_min = peak_idx-2*cascade_obj.best_width
     integral = np.trapz(ts_calibrated[ind_min:ind_max])
-    fluence = integral * 0.9830400000000001 /1000  * 5 #Jy-s
+    fluence = integral * 0.9830400000000001 /1000   #Jy-s
     
-    flux = np.nanmax(ts_calibrated) * 5
+    flux = np.nanmax(ts_calibrated) 
     peak_luminosity = flux_to_luminosity(flux)
     
     ## SAVING 
@@ -198,4 +226,8 @@ for file in crab_norescaled_filepaths[31:32]:
     del ds_before
     continue 
     
-np.savez("rfi_corrected_calibration.npz", mjds=mjds, has=has, y_at_peak=y_at_peak, event_timestamps=event_timestamps, peak_idxs=peak_idxs, beam_ids=beam_ids, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences)
+pdb.set_trace()
+
+np.savez("rfi_corrected_calibration_maxfreqs.npz", scaled_fluxes=scaled_fluxes)
+
+#np.savez("rfi_corrected_calibration.npz", mjds=mjds, has=has, y_at_peak=y_at_peak, event_timestamps=event_timestamps, peak_idxs=peak_idxs, beam_ids=beam_ids, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences)
