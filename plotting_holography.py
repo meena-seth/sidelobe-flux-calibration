@@ -50,7 +50,7 @@ for peak, width in zip(peaks, widths):
     lower_ind = np.round(peak - 5* width).astype(int)
     upper_ind = np.round(peak + 5* width).astype(int)
     
-    beam_copy[lower_ind:upper_ind] = np.nan
+    beam_copy[lower_ind:upper_ind] = median
     
 peaks2 = scipy.signal.find_peaks(beam_copy)
     
@@ -58,24 +58,24 @@ beam_copy2 = copy.deepcopy(beam_copy)
 difference = np.abs(beam_copy2 - np.nanmedian(beam_copy2))
 std = np.nanstd(beam_copy2)
 
-idxs = np.where(beam_copy2[difference >= 1.5 * std])
+idxs = np.where(difference >= 1.5 * std)
 
 for idx in idxs[0]:
     lower_ind = idx+20
     upper_ind = idx+30
     beam_slice = beam_copy2[lower_ind:upper_ind]
     median = np.nanmedian(beam_slice)
-    beam_copy2[idx-10:idx+10] = median
-    
+    beam_copy2[idx] = median
+
 
 #Masked beam response 
 plt.figure()
 plt.plot(beam_response)
-plt.plot(beam_copy, color='r')
+plt.plot(beam_copy2, color='r')
 plt.yscale('log')
 plt.ylabel('Normalised sensitivity')
 plt.xlabel('Frequency_bins')
-plt.savefig('/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/maskednan2')
+plt.savefig('/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/masked_twice')
 
 pdb.set_trace()
 
