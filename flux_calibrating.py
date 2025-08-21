@@ -105,74 +105,73 @@ for file in crab_norescaled_filepaths[31:32]:
     ## DEDISPERSE TO CRAB DM ##
     cascade_obj.beams[0].intensity = ds_masked
     cascade_obj.dm = 56.7 
-    #beam.subband(1024,56.7,apply_weights=False)  #Downsample to 1024 frequency
-    
-    # Subtract off-pulse mean from dynamic spectrum
-    offpulse_ds = ds_masked[:, 1500:1550]
+
+    offpulse_ds = ds_masked[:, 1500:1550] #Subtract off-pulse mean
     offpulse_mean = np.nanmean(offpulse_ds, axis=1)
     ds_masked = ds_masked - offpulse_mean[:, np.newaxis]
-    
-    # Check masking     
-    plt.figure()
-    plt.imshow(ds_masked, aspect='auto')
-    #plt.savefig(f"{i}_{mjd}_mask.png") #DS after masking & dedispersing
-        
+ 
     # Get parameters for later
     event_timestamp = cascade_obj.event_time 
     beam_id = int(beam.beam_no)
     ha, y = utils.get_position_from_equatorial(source_ra, source_dec, event_timestamp)
     
-    pdb.set_trace()
-    ## PRIMARY BEAM ##
+    ## PRIMARY BEAM  & CORRECTING ##
     ha_idx = np.abs(has_list - ha).argmin()
-    beam_response = intensity_norm[:, ha_idx] #[1024,]
-    beam_response[beam_response==0] = np.nan
+
+    ha_idxs = np.arange(ha_idx-120, ha_idx+121) #For a variety of HAs
+    fluxes = []
+    for i in ha_idxs:  
+        beam_response = intensity_norm[:, i] #[1024,]
+        beam_response[0:20] = beam_response[80:100]
+
+        beam_response[beam_response==0] = np.nan
     
-    ## CORRECTING ##
-    #only calibrating lower half of the band 
-    
-    beam_response[0:20] = beam_response[80:100]
-    ds_corrected = ds_masked[0:512] / beam_response[0:512, np.newaxis] 
-    ds_calibrated = bf_to_jy(ds_corrected, 1)
-    ts_calibrated = np.nanmean(ds_calibrated, axis=0)
+        ds_corrected = ds_masked[0:512] / beam_response[0:512, np.newaxis] 
+        ds_calibrated = bf_to_jy(ds_corrected, 1)
+        ts_calibrated = np.nanmean(ds_calibrated, axis=0)
         
+        flux = np.nanmax(ts_calibrated) * 5 /1000
+        fluxes.append(flux)
+        
+    beam_response_center = intensity_norm[:, ha_idx]
+    beam_response_center[beam_response_center==0] = np.nan
+    ds_corrected_center = ds_masked[0:512] / beam_response_center[0:512, np.newaxis]
+    ds_calibrated_center = bf_to_jy(ds_corrected_center, axis=0)
+    ts_calibrated_center = np.nanmean(ds_calibrated_center, axis=0)
+    
     ## PLOTTING ##
-    peak_idx = np.nanargmax(ts_calibrated)
-    
-    #DS after masking, dedispersing, and calibrating. (Normalised & zoomed in)
-    
+    # How flux changes vs. what HA we use in holography    
     plt.figure()
-    im = plt.imshow(normalise(ds_calibrated[:, peak_idx-100:peak_idx+100]), aspect='auto',cmap="YlGnBu")
-    cbar = plt.colorbar(im)
-    cbar.set_label("Flux (Jy)")
-    plt.ylabel("Frequency Bins")
-    plt.xlabel("Time sample")
-    plt.title(f"{i}_{mjd}, centered on t={peak_idx}") 
-    #plt.savefig(f"{i}_{mjd}_ds_calibrated.png")
-    
-    plt.figure()
-    plt.plot(beam_response[0:512])
-    plt.yscale('log')
-    #plt.savefig("beam_response")
-        
-    #Time series 
-    plt.figure()
-    plt.plot(ts_calibrated / 1000 *5)
+    plt.scatter(has_list[ha_idxs], fluxes)
+    plt.scatter(has_list[ha_idx], fluxes[120], color='r')
     plt.ylabel("Flux (kJy)")
-    plt.xlabel("Time sample")
-    plt.title(f"{i}_{mjd}")
-    plt.savefig(f"{i}_{mjd}_ts.png")
+    plt.xlabel("HA used to calibrate")
+    plt.savefig("HA_vs_flux.png")
+    pdb.set_trace()
     
-    ## CALCULATING STUFF 
+    # Comparing spectrum at peak time to holography at peak HA 
+    fig, ax = plt.subplot_mosaic(
+        '''
+        A
+        B
+        ''',
+        constrained_layout = True,
+        figsize = (10, 8), 
+        sharex = True)
     
-    ind_max = peak_idx+2*cascade_obj.best_width
-    ind_min = peak_idx-2*cascade_obj.best_width
-    integral = np.trapz(ts_calibrated[ind_min:ind_max])
-    fluence = integral * 0.9830400000000001 /1000  * 5 #Jy-s
+    ax['A'].plot(ds_calibrated_center[:, peak_idx] / np.nanmax(ds_calibrated_center[:, peak_idx], axis=0))
+    ax['A'].set_ylabel('Normalised flux')
     
-    flux = np.nanmax(ts_calibrated) * 5
-    peak_luminosity = flux_to_luminosity(flux)
+    ax['B'].plot(beam_response_center[0:512])
+    ax['B'].set_yscale('log')
+    ax['B'].set_ylabel('Normalised sensitivity')
+    ax['B'].set_xlabel('Frequency bins')
     
+    plt.suptitle(f"""{i}_{mjd} at t={peak_idx}, HA={ha_idx}
+    Normalised spectrum & beam response""")
+    plt.savefig(f"{i}_{mjd}_spectrum")
+    plt.close()
+        
     ## SAVING 
     fluences.append(fluence)
     scaled_fluxes.append(flux)
@@ -198,4 +197,8 @@ for file in crab_norescaled_filepaths[31:32]:
     del ds_before
     continue 
     
-np.savez("rfi_corrected_calibration.npz", mjds=mjds, has=has, y_at_peak=y_at_peak, event_timestamps=event_timestamps, peak_idxs=peak_idxs, beam_ids=beam_ids, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences)
+pdb.set_trace()
+
+np.savez("rfi_corrected_calibration_maxfreqs.npz", scaled_fluxes=scaled_fluxes)
+
+#np.savez("rfi_corrected_calibration.npz", mjds=mjds, has=has, y_at_peak=y_at_peak, event_timestamps=event_timestamps, peak_idxs=peak_idxs, beam_ids=beam_ids, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences)
