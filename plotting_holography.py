@@ -42,48 +42,6 @@ ha_idx = 345
 ha_idxs = np.arange(ha_idx-6, ha_idx+6)
 beam_response = intensity_norm[0:512, ha_idx]
 
-beam_response = intensity_norm[0:512, 340]
-beam_response[beam_response==0] = np.nan
-beam_copy = copy.deepcopy(beam_response)
-peaks, properties = scipy.signal.find_peaks(beam_copy, prominence=0.0004, width=0.0001)
-widths = properties['widths']
-
-for peak, width in zip(peaks, widths):
-    beam_slice = beam_copy[peak-20:peak-10]
-    median = np.nanmedian(beam_slice)
-
-    lower_ind = np.round(peak - 10* width).astype(int)
-    upper_ind = np.round(peak + 10* width).astype(int)
-
-    beam_copy[lower_ind:upper_ind] = median
-
-peaks2 = scipy.signal.find_peaks(beam_copy)
-
-beam_copy2 = copy.deepcopy(beam_copy)
-difference = np.abs(beam_copy2 - np.nanmedian(beam_copy2))
-std = np.nanstd(beam_copy2)
-
-idxs = np.where(difference >= 1.5 * std)
-
-for idx in idxs[0]:
-    beam_copy2[idx] = np.nan
-
-nanidxs = np.where(np.isnan(beam_copy2))
-for nanidx in nanidxs[0]:
-    beam_slice = beam_copy2[nanidx-10:nanidx+10]
-    median = np.nanmedian(beam_slice)
-    beam_copy2[nanidx] = median
-                
-plt.figure()
-plt.plot(beam_response)
-plt.plot(beam_copy2, color='r')
-plt.yscale('log')
-plt.savefig(f'/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/340_log')
-plt.close()
-
-pdb.set_trace()
-
-
 masked_beams = []
 for i in ha_idxs:
     beam_response = intensity_norm[0:512, i]
@@ -96,8 +54,8 @@ for i in ha_idxs:
         beam_slice = beam_copy[peak-20:peak-10]
         median = np.nanmedian(beam_slice)
 
-        lower_ind = np.round(peak - 5* width).astype(int)
-        upper_ind = np.round(peak + 5* width).astype(int)
+        lower_ind = np.round(peak - 10* width).astype(int)
+        upper_ind = np.round(peak + 10* width).astype(int)
 
         beam_copy[lower_ind:upper_ind] = median
 
@@ -114,7 +72,7 @@ for i in ha_idxs:
 
     nanidxs = np.where(np.isnan(beam_copy2))
     for nanidx in nanidxs[0]:
-        beam_slice = beam_copy2[nanidx-10:nanidx+10]
+        beam_slice = beam_copy2[nanidx-7:nanidx+7]
         median = np.nanmedian(beam_slice)
         beam_copy2[nanidx] = median
                 
