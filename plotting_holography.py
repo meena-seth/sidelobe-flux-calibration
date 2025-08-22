@@ -21,7 +21,15 @@ for (root, dirs, file) in os.walk(path_to_npzs):
         
 xx_list = []
 yy_list = []
-import pdb; pdb.set_trace()
+#pull out only the fn
+fns = [os.path.basename(f) for f in npz_files]
+#remove the .npz extension
+freqs = [float(fn[:-4]) for fn in fns]
+sort_indices = np.argsort(freqs)
+freqs = np.array(freqs)[sort_indices]
+npz_files = np.array(npz_files)[sort_indices]
+
+#sort the npz files by frequency index
 for file in npz_files:
     print(file)
     data = np.load(file)
