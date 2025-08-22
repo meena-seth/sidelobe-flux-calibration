@@ -120,7 +120,7 @@ for file in crab_norescaled_filepaths[31:32]:
     #plt.savefig(f"{i}_{mjd}_mask.png") #DS after masking & dedispersing
         
     # Get parameters for later
-    event_timestamp = cascade_obj.event_time     
+    event_timestamp = cascade_obj.event_time  
     event_time = Time(event_timestamp, scale='utc', location=chime_location)
     sidereal_time = event_time.sidereal_time('apparent').deg
     ha = sidereal_time - source_ra
