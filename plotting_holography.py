@@ -61,11 +61,8 @@ std = np.nanstd(beam_copy2)
 idxs = np.where(difference >= 1.5 * std)
 
 for idx in idxs[0]:
-    lower_ind = idx+20
-    upper_ind = idx+30
-    beam_slice = beam_copy2[lower_ind:upper_ind]
-    median = np.nanmedian(beam_slice)
-    beam_copy2[idx] = median
+    beam_copy2[idx] = np.nan
+    
 
 
 #Masked beam response 
