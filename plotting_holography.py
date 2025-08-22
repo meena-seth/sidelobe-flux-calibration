@@ -16,7 +16,7 @@ freqs = np.linspace(400.390625, 800, 1024) #1024 frequencies
 has = np.linspace(-105, 104.90278, 2160)   #2160 HAs in holography data
 
 # Load in all the .npz files & combine
-holography_data = np.load('/arc/projects/chime_frb/mseth/nrao/Holography_data_2.npz')
+holography_data = np.load('/arc/projects/chime_frb/mseth/Sorted_Normalized_holography_data.npz')
 intensity = holography_data['intensity']
 
 
@@ -49,8 +49,8 @@ for peak, width in zip(peaks, widths):
     
     lower_ind = np.round(peak - 5* width).astype(int)
     upper_ind = np.round(peak + 5* width).astype(int)
-    
-    beam_copy[lower_ind:upper_ind] = np.median
+
+    beam_copy[lower_ind:upper_ind] = median
     
 peaks2 = scipy.signal.find_peaks(beam_copy)
     
@@ -76,7 +76,7 @@ plt.plot(beam_copy2, color='r')
 plt.yscale('log')
 plt.ylabel('Normalised sensitivity')
 plt.xlabel('Frequency_bins')
-plt.savefig('/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/masked_twice_median2')
+plt.savefig('/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/sorted_masked')
 
 pdb.set_trace()
 
