@@ -10,7 +10,8 @@ import scipy.signal
 from iautils import cascade
 from scipy.stats import iqr 
 from datetime import datetime
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, EarthLocation
+from astropy.time import Time
 
 sys.path.insert(0, os.path.abspath('beam-model'))
 from beam_model import utils, formed
@@ -38,6 +39,7 @@ source_name = "TAU_A"
 coords = SkyCoord.from_name(source_name)
 source_ra = coords.ra.deg
 source_dec = coords.dec.deg
+#location = EarthLocation(lat=49.1915 * u.deg, lon=119.3725 * u.deg) 
 
 freqs = np.linspace(400.390625, 800, 1024) #1024 frequencies
 has_list = np.linspace(-105, 104.90278, 2160)   #2160 HAs in holography data
@@ -126,58 +128,65 @@ for file in crab_norescaled_filepaths[31:32]:
     ## PRIMARY BEAM ##
     ha_idx = np.abs(has_list - ha).argmin()
     ha_idxs = np.arange(ha_idx-6, ha_idx+6) #For a variety of HAs
+    beam_response = intensity_norm[0:512, ha_idx]
 
-    
-    beam_responses = []
-    for i in ha_idxs:  
-        beam_response = intensity_norm[:, i] #[1024,]
-        
-        #RFI masking holography data
-        peaks, properties = scipy.signal.find_peaks(beam_response, prominence=0.0004, width=0.001)
+    masked_beams = []
+    for index in ha_idxs:
+        beam_response = intensity_norm[0:512, index]
+        beam_response[beam_response==0] = np.nan
+        beam_copy = copy.deepcopy(beam_response)
+        peaks, properties = scipy.signal.find_peaks(beam_copy, prominence=0.0004, width=0.001)
         widths = properties['widths']
 
-        for peak, width in zip(peaks, widths): #First pass
-            beam_slice = beam_response[peak-20:peak-10]
+        for peak, width in zip(peaks, widths):
+            beam_slice = beam_copy[peak-20:peak-10]
             median = np.nanmedian(beam_slice)
-    
-            lower_ind = np.round(peak - 5* width).astype(int)
-            upper_ind = np.round(peak + 5* width).astype(int)
-            
-            beam_response[lower_ind:upper_ind] = median
-    
-            peaks2 = scipy.signal.find_peaks(beam_response)
-        
-        
-        difference = np.abs(beam_response - np.nanmedian(beam_response)) #Second pass
-        std = np.nanstd(beam_response)
+
+            lower_ind = np.round(peak - 10* width).astype(int)
+            upper_ind = np.round(peak + 10* width).astype(int)
+
+            beam_copy[lower_ind:upper_ind] = median
+
+        peaks2 = scipy.signal.find_peaks(beam_copy)
+
+        beam_copy2 = copy.deepcopy(beam_copy)
+        difference = np.abs(beam_copy2 - np.nanmedian(beam_copy2))
+        std = np.nanstd(beam_copy2)
+
         idxs = np.where(difference >= 1.5 * std)
+
         for idx in idxs[0]:
-            beam_response[idx] = np.nan
-            
-        nanidxs = np.where(np.isnan(beam_response))
+            beam_copy2[idx] = np.nan
+
+        nanidxs = np.where(np.isnan(beam_copy2))
         for nanidx in nanidxs[0]:
-            beam_slice = beam_response[nanidx-10:nanidx+10]
+            beam_slice = beam_copy2[nanidx-7:nanidx+7]
             median = np.nanmedian(beam_slice)
-            beam_response[nanidx] = median
+            beam_copy2[nanidx] = median
             
-        beam_responses.append(beam_response)
-        
-    beam_stack = np.vstack(beam_responses)
-    pdb.set_trace()
-    averaged_beam = np.nanmean(beam_responses, axis=0)
+        plt.figure()
+        plt.plot(beam_response)
+        plt.plot(beam_copy2, color='r')
+        plt.yscale('log')
+        plt.savefig(f'/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{index}_masked')
+        plt.close()
+
+        masked_beams.append(beam_copy2)
+    
+    stack = np.vstack(masked_beams)
+    averaged_beam = np.nanmean(stack, axis=0)
     
     plt.figure()
-    plt.plot(intensity_norm[0:512, ha_idx])
+    plt.plot(beam_response)
     plt.plot(averaged_beam, color='r')
     plt.yscale('log')
     plt.ylabel('Normalised sensitivity')
     plt.xlabel('Frequency_bins')
-    plt.savefig('/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/averaged_beam')
-    
-    pdb.set_trace()
+    plt.savefig('/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/averaged_beam_response')
 
+    pdb.set_trace()
     ## CORRECTING ##
-    ds_corrected = ds_masked[0:512] / averaged_beam[0:512, np.newaxis] 
+    ds_corrected = ds_masked[0:512] / averaged_beam[:, np.newaxis] 
     ds_calibrated = bf_to_jy(ds_corrected, 1)
     ts_calibrated = np.nanmean(ds_calibrated, axis=0)
         
@@ -192,7 +201,7 @@ for file in crab_norescaled_filepaths[31:32]:
     plt.ylabel("Frequency Bins")
     plt.xlabel("Time sample")
     plt.title(f"{i}_{mjd}, centered on t={peak_idx}") 
-    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/{i}_{mjd}_ds_calibrated.png")
+    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{i}_{mjd}_ds_calibrated.png")
     
     #Time series 
     plt.figure()
@@ -200,7 +209,7 @@ for file in crab_norescaled_filepaths[31:32]:
     plt.ylabel("Flux (kJy)")
     plt.xlabel("Time sample")
     plt.title(f"{i}_{mjd}")
-    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/{i}_{mjd}_ts.png")
+    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{i}_{mjd}_ts.png")
     
     #Spectrum vs. holography response
     fig, ax = plt.subplot_mosaic(
@@ -215,14 +224,15 @@ for file in crab_norescaled_filepaths[31:32]:
     ax['A'].plot(ds_calibrated[:, peak_idx] / np.nanmax(ds_calibrated[:, peak_idx], axis=0))
     ax['A'].set_ylabel('Normalised flux')
     
-    ax['B'].plot(averaged_beam[0:512])
+    ax['B'].plot(beam_response)
+    ax['B'].plot(averaged_beam, color='r')
     ax['B'].set_yscale('log')
     ax['B'].set_ylabel('Normalised sensitivity')
     ax['B'].set_xlabel('Frequency bins')
     
-    plt.suptitle(f"""/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/{i}_{mjd} at t={peak_idx}, HA={ha_idx}
+    plt.suptitle(f"""{i}_{mjd} at t={peak_idx}, HA={ha_idx}
     Normalised spectrum & beam response""")
-    plt.savefig(f"{i}_{mjd}_spectrum")
+    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{i}_{mjd}_spectrum")
     plt.close()
     
     ## CALCULATING STUFF 
@@ -258,6 +268,7 @@ for file in crab_norescaled_filepaths[31:32]:
     del ds_corrected
     del ds_masked 
     del ds_before
+    pdb.set_trace()
     continue 
     
 np.savez("rfi_corrected_calibration.npz", mjds=mjds, has=has, y_at_peak=y_at_peak, event_timestamps=event_timestamps, peak_idxs=peak_idxs, beam_ids=beam_ids, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences)
