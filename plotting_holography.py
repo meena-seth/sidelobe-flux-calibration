@@ -70,13 +70,18 @@ fig, ax = plt.subplot_mosaic(
     ''',
     figsize = (8,10),
     layout = 'constrained')
+log_intensity_xx = np.log10(xx_norm)
+log_intensity_xx[log_intensity_xx>0] = np.nan  #set anything above 0 to nan for better colorbar scaling
 
-pcm_xx = ax['A'].pcolormesh(has, freqs, np.log10(xx_norm))
+pcm_xx = ax['A'].pcolormesh(has, freqs, log_intensity_xx)
 ax['A'].set_ylabel('Frequencies (MHz)')
 ax['A'].set_xlabel('HA')
 ax['A'].set_title('XX Polarization')
 
-pcm_yy = ax['B'].pcolormesh(has, freqs, np.log10(yy_norm))
+log_intensity_yy = np.log10(yy_norm)
+log_intensity_yy[log_intensity_yy>0] = np.nan  #set anything above 0 to nan for better colorbar scaling
+
+pcm_yy = ax['B'].pcolormesh(has, freqs, log_intensity_yy)
 ax['B'].set_ylabel('Frequencies (MHz)')
 ax['B'].set_xlabel('HA')
 ax['B'].set_title('YY Polarization')
@@ -95,8 +100,9 @@ fig, ax = plt.subplot_mosaic(
     ''',
     figsize = (6,6),
     layout = 'constrained')
-
-pcm = ax['A'].pcolormesh(has, freqs, np.log10(intensity_norm))
+log_intensity = np.log10(intensity_norm)
+log_intensity[log_intensity>0] = np.nan  #set anything above 0 to nan for better colorbar scaling
+pcm = ax['A'].pcolormesh(has, freqs, log_intensity)
 ax['A'].set_ylabel('Frequencies (MHz)')
 ax['A'].set_xlabel('HA')
 ax['A'].set_title('Intensity')
