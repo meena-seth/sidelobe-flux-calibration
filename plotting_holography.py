@@ -1,6 +1,7 @@
 import numpy as np 
 import os
 import matplotlib.pyplot as plt
+import pdb
 
 '''
 Takes .npz files for each frequency and combines everything into one .npz file with 
@@ -11,7 +12,11 @@ Plots the dynamic-spectrum-like beam response.
 '''
 
 # Load in all the .npz files & combine
-path_to_npzs = "/users/mseth/holography_data/npz_files"  
+
+freqs = np.linspace(400.390625, 800, 1024) #1024 frequencies
+has= np.linspace(-105, 104.90278, 2160)   #2160 HAs in holography 
+
+path_to_npzs = "/arc/projects/chime_frb/mseth/calibration_data/holography_data"
 
 npz_files = []
 for (root, dirs, file) in os.walk(path_to_npzs):
@@ -71,7 +76,7 @@ fig.colorbar(pcm_xx, ax=ax['A'])
 fig.colorbar(pcm_yy, ax=ax['B'])
 plt.suptitle('CHIME Primary beam response')
 
-plt.savefig('XX_YY_beam_response')
+#plt.savefig('XX_YY_beam_response')
 
 #Plotting intensity
 plt.figure()
@@ -89,4 +94,4 @@ ax['A'].set_title('Intensity')
 
 fig.colorbar(pcm, ax=ax['A'])
 
-plt.savefig('Intensity_beam_response')
+plt.savefig('/arc/projects/chime_frb/mseth/plots/unsorted_Intensity_beam_response')
