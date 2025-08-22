@@ -1,6 +1,7 @@
 import numpy as np 
 import os
 import matplotlib.pyplot as plt
+import pdb
 
 '''
 Takes .npz files for each frequency and combines everything into one .npz file with 
@@ -11,17 +12,36 @@ Plots the dynamic-spectrum-like beam response.
 '''
 
 # Load in all the .npz files & combine
-path_to_npzs = "/users/mseth/holography_data/npz_files"  
+path_to_npzs = "/arc/projects/chime_frb/mseth/calibration_data/holography_data"  
 
 npz_files = []
 for (root, dirs, file) in os.walk(path_to_npzs):
     for f in file: 
         npz_files.append(os.path.join(root, f))
         
+        
+# Need to sort npz_files
+freq_names =[]
+for file in npz_files:
+    filename = file.split("/")
+    freq_name = float(os.path.splitext(filename[7])[0])
+    freq_names.append(freq_name)
+        
+freq_names.sort()
+
+sorted_filepaths = []
+for freq_name in freq_names:
+    filename = f'{freq_name}.npz'
+    filepath = os.path.join(path_to_npzs, filename)
+    sorted_filepaths.append(filepath)
+
+pdb.set_trace()
+
+    
 xx_list = []
 yy_list = []
-for file in npz_files:
-    data = np.load(file)
+for filepath in sorted_filepaths:
+    data = np.load(filepath)
     xx = data['XX']
     yy = data['YY']
     xx_list.append(xx)
@@ -46,8 +66,9 @@ intensity_norm = intensity / intensity_max  #[1024, 2160] [freq, HA]
 
 
 #Saving 
-np.savez("Normalized_holography_data", xx_norm=xx_norm, yy_norm=yy_norm, intensity_norm=intensity_norm)
+np.savez("/arc/projects/chime_frb/mseth/Sorted_Normalized_holography_data", xx_norm=xx_norm, yy_norm=yy_norm, intensity_norm=intensity_norm, intensity=intensity)
 
+pdb.set_trace()
 #Plotting xx and yy 
 fig, ax = plt.subplot_mosaic(
     '''
@@ -71,9 +92,10 @@ fig.colorbar(pcm_xx, ax=ax['A'])
 fig.colorbar(pcm_yy, ax=ax['B'])
 plt.suptitle('CHIME Primary beam response')
 
-plt.savefig('XX_YY_beam_response')
+#plt.savefig('XX_YY_beam_response')
 
-#Plotting intensity
+freqs = np.linspace(400.390625, 800, 1024) #1024 frequencies
+has = np.linspace(-105, 104.90278, 2160)   #2160 HAs in holography #Plotting intensity
 plt.figure()
 fig, ax = plt.subplot_mosaic(
     '''
@@ -89,4 +111,4 @@ ax['A'].set_title('Intensity')
 
 fig.colorbar(pcm, ax=ax['A'])
 
-plt.savefig('Intensity_beam_response')
+plt.savefig('Intensity_beam_response_sorted')
