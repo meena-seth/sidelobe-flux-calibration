@@ -6,6 +6,7 @@ import sys
 import pdb
 import copy
 import datetime
+import scipy.signal 
 from iautils import cascade
 from scipy.stats import iqr 
 from datetime import datetime
@@ -122,17 +123,61 @@ for file in crab_norescaled_filepaths[31:32]:
     beam_id = int(beam.beam_no)
     ha, y = utils.get_position_from_equatorial(source_ra, source_dec, event_timestamp)
     
-    pdb.set_trace()
     ## PRIMARY BEAM ##
     ha_idx = np.abs(has_list - ha).argmin()
-    beam_response = intensity_norm[:, ha_idx] #[1024,]
-    beam_response[beam_response==0] = np.nan
+    ha_idxs = np.arange(ha_idx-6, ha_idx+6) #For a variety of HAs
+
     
+    beam_responses = []
+    for i in ha_idxs:  
+        beam_response = intensity_norm[:, i] #[1024,]
+        
+        #RFI masking holography data
+        peaks, properties = scipy.signal.find_peaks(beam_response, prominence=0.0004, width=0.001)
+        widths = properties['widths']
+
+        for peak, width in zip(peaks, widths): #First pass
+            beam_slice = beam_response[peak-20:peak-10]
+            median = np.nanmedian(beam_slice)
+    
+            lower_ind = np.round(peak - 5* width).astype(int)
+            upper_ind = np.round(peak + 5* width).astype(int)
+            
+            beam_response[lower_ind:upper_ind] = median
+    
+            peaks2 = scipy.signal.find_peaks(beam_response)
+        
+        
+        difference = np.abs(beam_response - np.nanmedian(beam_response)) #Second pass
+        std = np.nanstd(beam_response)
+        idxs = np.where(difference >= 1.5 * std)
+        for idx in idxs[0]:
+            beam_response[idx] = np.nan
+            
+        nanidxs = np.where(np.isnan(beam_response))
+        for nanidx in nanidxs[0]:
+            beam_slice = beam_response[nanidx-10:nanidx+10]
+            median = np.nanmedian(beam_slice)
+            beam_response[nanidx] = median
+            
+        beam_responses.append(beam_response)
+        
+    beam_stack = np.vstack(beam_responses)
+    pdb.set_trace()
+    averaged_beam = np.nanmean(beam_responses, axis=0)
+    
+    plt.figure()
+    plt.plot(intensity_norm[0:512, ha_idx])
+    plt.plot(averaged_beam, color='r')
+    plt.yscale('log')
+    plt.ylabel('Normalised sensitivity')
+    plt.xlabel('Frequency_bins')
+    plt.savefig('/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/averaged_beam')
+    
+    pdb.set_trace()
+
     ## CORRECTING ##
-    #only calibrating lower half of the band 
-    
-    beam_response[0:20] = beam_response[80:100]
-    ds_corrected = ds_masked[0:512] / beam_response[0:512, np.newaxis] 
+    ds_corrected = ds_masked[0:512] / averaged_beam[0:512, np.newaxis] 
     ds_calibrated = bf_to_jy(ds_corrected, 1)
     ts_calibrated = np.nanmean(ds_calibrated, axis=0)
         
@@ -140,7 +185,6 @@ for file in crab_norescaled_filepaths[31:32]:
     peak_idx = np.nanargmax(ts_calibrated)
     
     #DS after masking, dedispersing, and calibrating. (Normalised & zoomed in)
-    
     plt.figure()
     im = plt.imshow(normalise(ds_calibrated[:, peak_idx-100:peak_idx+100]), aspect='auto',cmap="YlGnBu")
     cbar = plt.colorbar(im)
@@ -148,20 +192,38 @@ for file in crab_norescaled_filepaths[31:32]:
     plt.ylabel("Frequency Bins")
     plt.xlabel("Time sample")
     plt.title(f"{i}_{mjd}, centered on t={peak_idx}") 
-    #plt.savefig(f"{i}_{mjd}_ds_calibrated.png")
+    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/{i}_{mjd}_ds_calibrated.png")
     
-    plt.figure()
-    plt.plot(beam_response[0:512])
-    plt.yscale('log')
-    #plt.savefig("beam_response")
-        
     #Time series 
     plt.figure()
     plt.plot(ts_calibrated / 1000 *5)
     plt.ylabel("Flux (kJy)")
     plt.xlabel("Time sample")
     plt.title(f"{i}_{mjd}")
-    plt.savefig(f"{i}_{mjd}_ts.png")
+    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/{i}_{mjd}_ts.png")
+    
+    #Spectrum vs. holography response
+    fig, ax = plt.subplot_mosaic(
+    '''
+    A
+    B
+    ''',
+    constrained_layout = True,
+    figsize = (10, 8), 
+    sharex = True)
+    
+    ax['A'].plot(ds_calibrated[:, peak_idx] / np.nanmax(ds_calibrated[:, peak_idx], axis=0))
+    ax['A'].set_ylabel('Normalised flux')
+    
+    ax['B'].plot(averaged_beam[0:512])
+    ax['B'].set_yscale('log')
+    ax['B'].set_ylabel('Normalised sensitivity')
+    ax['B'].set_xlabel('Frequency bins')
+    
+    plt.suptitle(f"""/arc/projects/chime_frb/mseth/plots/masking_rfi_holography/{i}_{mjd} at t={peak_idx}, HA={ha_idx}
+    Normalised spectrum & beam response""")
+    plt.savefig(f"{i}_{mjd}_spectrum")
+    plt.close()
     
     ## CALCULATING STUFF 
     
