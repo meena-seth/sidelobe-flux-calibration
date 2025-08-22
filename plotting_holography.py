@@ -21,6 +21,7 @@ for (root, dirs, file) in os.walk(path_to_npzs):
         
 xx_list = []
 yy_list = []
+import pdb; pdb.set_trace()
 for file in npz_files:
     print(file)
     data = np.load(file)
