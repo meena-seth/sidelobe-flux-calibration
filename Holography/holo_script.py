@@ -9,6 +9,8 @@ from ch_util import tools
 import sys
 # Load in the data file
 filename = "/project/rpp-chime/areda26/stuff_for_other_people/hsiu-hsien/TauA_105/2667/TAU_A_2667_20181014T120212.h5"
+
+#filename = "/project/rpp-chime/chime/chime_processed/holography/holo_fstop/rev_01/CygA_run010/CYG_A_2474_20190116T201442.h5" 
 f = h5py.File(filename, "r")
 beam_dset = f["beam"] 
 index_map = f['index_map']

@@ -11,7 +11,8 @@ Plots the dynamic-spectrum-like beam response.
 '''
 
 # Load in all the .npz files & combine
-path_to_npzs = "/users/mseth/holography_data/npz_files"  
+import sys
+path_to_npzs = sys.argv[1]
 
 npz_files = []
 for (root, dirs, file) in os.walk(path_to_npzs):
@@ -21,6 +22,7 @@ for (root, dirs, file) in os.walk(path_to_npzs):
 xx_list = []
 yy_list = []
 for file in npz_files:
+    print(file)
     data = np.load(file)
     xx = data['XX']
     yy = data['YY']
