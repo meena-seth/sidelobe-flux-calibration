@@ -136,7 +136,7 @@ for file in crab_norescaled_filepaths[31:32]:
         
         flux = np.nanmax(ts_calibrated) * 5 /1000
         fluxes.append(flux)
-        
+    fluxes[42]=np.nan    
     beam_response_center = intensity_norm[:, ha_idx]
     beam_response_center[beam_response_center==0] = np.nan
     beam_response_center[0:20] = beam_response_center[80:100]
@@ -154,7 +154,9 @@ for file in crab_norescaled_filepaths[31:32]:
     plt.scatter(has_list[ha_idx], fluxes[120], color='r')
     plt.ylabel("Flux (kJy)")
     plt.xlabel("HA used to calibrate")
-    #plt.savefig("HA_vs_flux.png")
+    plt.savefig("/arc/projects/chime_frb/mseth/plots/HA_vs_flux.png")
+    
+    pdb.set_trace()
     
     # Comparing spectrum at peak time to holography at peak HA 
     
