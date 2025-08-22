@@ -135,21 +135,30 @@ for file in crab_norescaled_filepaths[31:32]:
         
     beam_response_center = intensity_norm[:, ha_idx]
     beam_response_center[beam_response_center==0] = np.nan
+    beam_response_center[0:20] = beam_response_center[80:100]
     ds_corrected_center = ds_masked[0:512] / beam_response_center[0:512, np.newaxis]
-    ds_calibrated_center = bf_to_jy(ds_corrected_center, axis=0)
+    
+    ds_calibrated_center = bf_to_jy(ds_corrected_center, 1)
     ts_calibrated_center = np.nanmean(ds_calibrated_center, axis=0)
+    peak_idx = np.argmax(ts_calibrated_center)
     
     ## PLOTTING ##
+    
     # How flux changes vs. what HA we use in holography    
     plt.figure()
     plt.scatter(has_list[ha_idxs], fluxes)
     plt.scatter(has_list[ha_idx], fluxes[120], color='r')
     plt.ylabel("Flux (kJy)")
     plt.xlabel("HA used to calibrate")
-    plt.savefig("HA_vs_flux.png")
-    pdb.set_trace()
+    #plt.savefig("HA_vs_flux.png")
     
     # Comparing spectrum at peak time to holography at peak HA 
+    beam_50 = intensity_norm[0:512, 150]
+    beam_50[0:20] = beam_50[80:100]
+    beam_56 = intensity_norm[0:512, 90]
+    beam_56[0:20] = beam_56 [80:100]
+    
+    
     fig, ax = plt.subplot_mosaic(
         '''
         A
@@ -162,16 +171,21 @@ for file in crab_norescaled_filepaths[31:32]:
     ax['A'].plot(ds_calibrated_center[:, peak_idx] / np.nanmax(ds_calibrated_center[:, peak_idx], axis=0))
     ax['A'].set_ylabel('Normalised flux')
     
-    ax['B'].plot(beam_response_center[0:512])
+
+    ax['B'].plot(beam_56, color='g', label="HA=-56")
+    ax['B'].plot(beam_50, color='b', label="HA=-50")
+    ax['B'].plot(beam_response_center[0:512], color='r', label="HA=-53")
     ax['B'].set_yscale('log')
     ax['B'].set_ylabel('Normalised sensitivity')
     ax['B'].set_xlabel('Frequency bins')
+    ax['B'].legend
     
     plt.suptitle(f"""{i}_{mjd} at t={peak_idx}, HA={ha_idx}
     Normalised spectrum & beam response""")
     plt.savefig(f"{i}_{mjd}_spectrum")
     plt.close()
         
+    pdb.set_trace()
     ## SAVING 
     fluences.append(fluence)
     scaled_fluxes.append(flux)
