@@ -153,11 +153,6 @@ for file in crab_norescaled_filepaths[31:32]:
     #plt.savefig("HA_vs_flux.png")
     
     # Comparing spectrum at peak time to holography at peak HA 
-    beam_50 = intensity_norm[0:512, 150]
-    beam_50[0:20] = beam_50[80:100]
-    beam_56 = intensity_norm[0:512, 90]
-    beam_56[0:20] = beam_56 [80:100]
-    
     
     fig, ax = plt.subplot_mosaic(
         '''
@@ -172,8 +167,6 @@ for file in crab_norescaled_filepaths[31:32]:
     ax['A'].set_ylabel('Normalised flux')
     
 
-    ax['B'].plot(beam_56, color='g', label="HA=-56")
-    ax['B'].plot(beam_50, color='b', label="HA=-50")
     ax['B'].plot(beam_response_center[0:512], color='r', label="HA=-53")
     ax['B'].set_yscale('log')
     ax['B'].set_ylabel('Normalised sensitivity')
