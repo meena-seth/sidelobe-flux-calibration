@@ -30,11 +30,13 @@ freqs = np.array(freqs)[sort_indices]
 npz_files = np.array(npz_files)[sort_indices]
 
 #sort the npz files by frequency index
+has = []
 for file in npz_files:
     print(file)
     data = np.load(file)
     xx = data['XX']
     yy = data['YY']
+    has.append(data['HA'])
     xx_list.append(xx)
     yy_list.append(yy)
 
