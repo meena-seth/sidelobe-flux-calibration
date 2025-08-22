@@ -39,7 +39,7 @@ source_name = "TAU_A"
 coords = SkyCoord.from_name(source_name)
 source_ra = coords.ra.deg
 source_dec = coords.dec.deg
-#location = EarthLocation(lat=49.1915 * u.deg, lon=119.3725 * u.deg) 
+chime_location = EarthLocation.of_address("Dominion Radio Astrophysical Observatory, British Columbia") 
 
 freqs = np.linspace(400.390625, 800, 1024) #1024 frequencies
 has_list = np.linspace(-105, 104.90278, 2160)   #2160 HAs in holography data
@@ -122,14 +122,17 @@ for file in crab_norescaled_filepaths[31:32]:
         
     # Get parameters for later
     event_timestamp = cascade_obj.event_time 
+    event_time = Time(event_timestamp, scale='utc', location=chime_location)
+    sidereal_time = event_time.sidereal_time('apparent').deg
+    ha = sidereal_time - source_ra
     beam_id = int(beam.beam_no)
-    ha, y = utils.get_position_from_equatorial(source_ra, source_dec, event_timestamp)
     
     ## PRIMARY BEAM ##
     ha_idx = np.abs(has_list - ha).argmin()
     ha_idxs = np.arange(ha_idx-6, ha_idx+6) #For a variety of HAs
+    intensity_norm[np.log10(intensity_norm)>1] = np.nan
     beam_response = intensity_norm[0:512, ha_idx]
-
+    
     masked_beams = []
     for index in ha_idxs:
         beam_response = intensity_norm[0:512, index]
@@ -168,7 +171,7 @@ for file in crab_norescaled_filepaths[31:32]:
         plt.plot(beam_response)
         plt.plot(beam_copy2, color='r')
         plt.yscale('log')
-        plt.savefig(f'/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{index}_masked')
+        #plt.savefig(f'/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{index}_masked')
         plt.close()
 
         masked_beams.append(beam_copy2)
@@ -184,7 +187,6 @@ for file in crab_norescaled_filepaths[31:32]:
     plt.xlabel('Frequency_bins')
     plt.savefig('/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/averaged_beam_response')
 
-    pdb.set_trace()
     ## CORRECTING ##
     ds_corrected = ds_masked[0:512] / averaged_beam[:, np.newaxis] 
     ds_calibrated = bf_to_jy(ds_corrected, 1)
@@ -253,7 +255,6 @@ for file in crab_norescaled_filepaths[31:32]:
     event_timestamps.append(event_timestamp)
     beam_ids.append(beam_id)
     has.append(ha)
-    y_at_peak.append(y)
     mjds.append(mjd)
     peak_idxs.append(peak_idx)
     
