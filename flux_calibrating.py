@@ -117,7 +117,7 @@ for file in crab_norescaled_filepaths[31:32]:
     # Check masking     
     plt.figure()
     plt.imshow(ds_masked, aspect='auto')
-    #plt.savefig(f"{i}_{mjd}_mask.png") #DS after masking & dedispersing
+    plt.savefig(f"{i}_{mjd}_mask.png") #DS after masking & dedispersing
         
     # Get parameters for later
     event_timestamp = cascade_obj.event_time  
@@ -151,7 +151,7 @@ for file in crab_norescaled_filepaths[31:32]:
     plt.ylabel("Frequency Bins")
     plt.xlabel("Time sample")
     plt.title(f"{i}_{mjd}, centered on t={peak_idx}") 
-    #plt.savefig(f"{i}_{mjd}_ds_calibrated.png")
+    plt.savefig(f"{i}_{mjd}_ds_calibrated.png")
     
     plt.figure()
     plt.plot(beam_response[0:512])
