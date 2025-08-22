@@ -9,7 +9,8 @@ import datetime
 from iautils import cascade
 from scipy.stats import iqr 
 from datetime import datetime
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, EarthLocation
+from astropy.time import Time
 
 sys.path.insert(0, os.path.abspath('beam-model'))
 from beam_model import utils, formed
@@ -37,6 +38,7 @@ source_name = "TAU_A"
 coords = SkyCoord.from_name(source_name)
 source_ra = coords.ra.deg
 source_dec = coords.dec.deg
+chime_location = EarthLocation.of_address("Dominion Radio Astrophysical Observatory, British Columbia")
 
 freqs = np.linspace(400.390625, 800, 1024) #1024 frequencies
 has_list = np.linspace(-105, 104.90278, 2160)   #2160 HAs in holography data
@@ -112,8 +114,10 @@ for file in crab_norescaled_filepaths[31:32]:
  
     # Get parameters for later
     event_timestamp = cascade_obj.event_time 
+    event_time = Time(event_timestamp, scale='utc', location=chime_location)
+    sidereal_time = event_time.sidereal_time('apparent').deg
+    ha = sidereal_time - source_ra
     beam_id = int(beam.beam_no)
-    ha, y = utils.get_position_from_equatorial(source_ra, source_dec, event_timestamp)
     
     ## PRIMARY BEAM  & CORRECTING ##
     ha_idx = np.abs(has_list - ha).argmin()
