@@ -41,7 +41,8 @@ for file in npz_files:
 xx = np.vstack(xx_list)   #[1024, 2160] [freq, HA]
 yy = np.vstack(yy_list)   #[1024, 2160] [freq, HA]
 
-# Normalizing & calculating intensity 
+# Normalizing & calculating intensity
+import pdb; pdb.set_trace()
 xx_masked =  xx[:,1040:1120]
 xx_max = np.max(xx_masked)
 xx_norm = xx / xx_max
