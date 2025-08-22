@@ -24,7 +24,7 @@ intensity_masked = intensity[:,1760:1840]
 
 intensity_max = np.max(intensity_masked)
 intensity_norm = intensity / intensity_max
-
+intensity_norm[np.log10(intensity_norm) > 1] = np.nan
 
 f'''
 #Unmasked beam response
