@@ -12,6 +12,8 @@ from scipy.stats import iqr
 from datetime import datetime
 from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.time import Time
+from matplotlib.backends.backend_pdf import PdfPages
+
 
 sys.path.insert(0, os.path.abspath('beam-model'))
 from beam_model import utils, formed
@@ -87,11 +89,10 @@ for file in crab_norescaled_filepaths[31:32]:
     
     cascade_obj.dm = 56.7
     beam.subband(1024,56.7,apply_weights=False)  #Downsample to 1024 frequency
-    
-    cascade_obj.dm = 0
-    
-    ## RFI MASKING (at DM=0) ##
-    ds_before = cascade_obj.beams[0].intensity
+        
+    ### RFI MASKING DATA ###
+    cascade_obj.dm = 0  # Using DM 0 
+    ds_before = cascade_obj.beams[0].intensity 
     ds_copy = copy.deepcopy(ds_before)
     ds_copy = normalise(ds_copy)
     ts_before = np.nanmean(ds_copy, axis=0)
@@ -108,13 +109,17 @@ for file in crab_norescaled_filepaths[31:32]:
     ## DEDISPERSE TO CRAB DM ##
     cascade_obj.beams[0].intensity = ds_masked
     cascade_obj.dm = 56.7 
-    #beam.subband(1024,56.7,apply_weights=False)  #Downsample to 1024 frequency
     
     # Subtract off-pulse mean from dynamic spectrum
     initial_peak_idx = np.nanargmax((np.nansum(ds_masked, axis=1)))
-    #offpulse_ds = ds_masked[:, initial_peak_idx-20:initial_peak_idx-5]
-    #offpulse_mean = np.nanmean(offpulse_ds, axis=1)
-    #ds_masked = ds_masked - offpulse_mean[:, np.newaxis]
+    f'''
+    offpulse_ds = ds_masked[:, initial_peak_idx-20:initial_peak_idx-5]
+    offpulse_mean = np.nanmean(offpulse_ds, axis=1)
+    ds_masked = ds_masked - offpulse_mean[:, np.newaxis]
+    '''
+    
+    offpulse_median = np.nanmedian(ds_masked[:, initial_peak_idx-200:initial_peak_idx+200], axis=1)
+    ds_masked = ds_masked - offpulse_median[:, np.newaxis]
     
     # Check masking     
     plt.figure()
@@ -128,12 +133,13 @@ for file in crab_norescaled_filepaths[31:32]:
     ha = sidereal_time - source_ra
     beam_id = int(beam.beam_no)
     
-    ## PRIMARY BEAM ##
+    ### PRIMARY BEAM ###
     ha_idx = np.abs(has_list - ha).argmin()
-    ha_idxs = np.arange(ha_idx-6, ha_idx+6) #For a variety of HAs
+    ha_idxs = np.arange(ha_idx-6, ha_idx+6) #12 HAs (1 deg)
     intensity_norm[np.log10(intensity_norm)>1] = np.nan
     beam_response = intensity_norm[0:512, ha_idx]
     
+    #Removing RFI from holography
     masked_beams = []
     for index in ha_idxs:
         beam_response = intensity_norm[0:512, index]
@@ -180,42 +186,29 @@ for file in crab_norescaled_filepaths[31:32]:
     stack = np.vstack(masked_beams)
     averaged_beam = np.nanmean(stack, axis=0)
     
-    plt.figure()
-    plt.plot(beam_response)
-    plt.plot(averaged_beam, color='r')
-    plt.yscale('log')
-    plt.ylabel('Normalised sensitivity')
-    plt.xlabel('Frequency_bins')
-   # plt.savefig('/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/averaged_beam_response')
-    
-    ## CORRECTING ##
+    ### CORRECTING ###
     ds_corrected = ds_masked[0:512] / averaged_beam[:, np.newaxis] 
     ds_calibrated = bf_to_jy(ds_corrected, 1)
     
-    offpulse_ds = ds_calibrated[:, initial_peak_idx-100:initial_peak_idx-20]
-    offpulse_mean = np.nanmean(offpulse_ds, axis=1)
-    ds_masked = ds_calibrated - offpulse_mean[:, np.newaxis]
-    
-    ts_calibrated = np.nanmean(ds_masked, axis=0)
+    ts_calibrated = np.nanmean(ds_calibrated, axis=0)
     peak_idx = np.nanargmax(ts_calibrated)
 
-    
-    offpulse_ts = np.nanmean(ts_calibrated[peak_idx-30:peak_idx-20])
+    offpulse_ts = np.nanmedian(ts_calibrated[peak_idx-50:peak_idx+50])
     ts_masked = ts_calibrated - offpulse_ts
         
-    ## PLOTTING ##    
+    ### PLOTTING ###   
     #DS after masking, dedispersing, and calibrating. (Normalised & zoomed in)
-    plt.figure()
+    fig1 = plt.figure()
     im = plt.imshow(normalise(ds_calibrated[:, peak_idx-100:peak_idx+100]), aspect='auto',cmap="YlGnBu")
     cbar = plt.colorbar(im)
     cbar.set_label("Flux (Jy)")
     plt.ylabel("Frequency Bins")
     plt.xlabel("Time sample")
     plt.title(f"{i}_{mjd}, centered on t={peak_idx}") 
-    #plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{i}_{mjd}_ds_calibrated.png")
+    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{i}_{mjd}_ds_calibrated3.png")
     
     #Time series 
-    plt.figure()
+    fig2 = plt.figure()
     plt.plot(ts_masked / 1000 *5)
     plt.ylabel("Flux (kJy)")
     plt.xlabel("Time sample")
@@ -223,16 +216,17 @@ for file in crab_norescaled_filepaths[31:32]:
     plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{i}_{mjd}_ts.png")
     
         #Time series 
-    plt.figure()
+    fig3 = plt.figure()
     plt.plot(ts_masked[peak_idx-100:peak_idx+100] / 1000 *5)
     plt.ylabel("Flux (kJy)")
     plt.xlabel("Time sample")
     plt.title(f"{i}_{mjd}")
-    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/zoomed_ts_test4.png")
+    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/zoomed_ts_test7.png")
     
     pdb.set_trace()
     
     #Spectrum vs. holography response
+    fig4 = plt.figure()
     fig, ax = plt.subplot_mosaic(
     '''
     A
@@ -255,6 +249,15 @@ for file in crab_norescaled_filepaths[31:32]:
     Normalised spectrum & beam response""")
     plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{i}_{mjd}_spectrum")
     plt.close()
+    
+    def save_image(filename):
+        p = PdfPages(filename)
+        fig_nums = plt.get_fignums()  
+        figs = [plt.figure(n) for n in fig_nums]
+        for fig in figs: 
+            fig.savefig(p, format='pdf') 
+        p.close()  
+
     
     ## CALCULATING STUFF 
     
