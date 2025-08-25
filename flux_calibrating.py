@@ -74,7 +74,7 @@ y_at_peak = []
 mjds =[]
 peak_idxs = []
 
-for file in crab_norescaled_filepaths[31:32]:
+for file in crab_norescaled_filepaths[0:1]:
     # Get file name and index 
     filename = file.split("/")
     mjd = filename[7].split("_")[1].split(".")[0]
@@ -124,6 +124,8 @@ for file in crab_norescaled_filepaths[31:32]:
     event_time = Time(event_timestamp, scale='utc', location=chime_location)
     sidereal_time = event_time.sidereal_time('apparent').deg
     ha = sidereal_time - source_ra
+    if ha > 180:
+        ha = 360 - ha
     beam_id = int(beam.beam_no)
     
     ## PRIMARY BEAM ##
@@ -131,12 +133,15 @@ for file in crab_norescaled_filepaths[31:32]:
     beam_response = intensity_norm[:, ha_idx] #[1024,]
     beam_response[beam_response==0] = np.nan
     
+    
     ## CORRECTING ##
     #only calibrating lower half of the band 
     
     beam_response[0:20] = beam_response[80:100]
     ds_corrected = ds_masked[0:512] / beam_response[0:512, np.newaxis] 
     ds_calibrated = bf_to_jy(ds_corrected, 1)
+    
+    pdb.set_trace()
     ts_calibrated = np.nanmean(ds_calibrated, axis=0)
         
     ## PLOTTING ##
