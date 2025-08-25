@@ -111,9 +111,10 @@ for file in crab_norescaled_filepaths[31:32]:
     #beam.subband(1024,56.7,apply_weights=False)  #Downsample to 1024 frequency
     
     # Subtract off-pulse mean from dynamic spectrum
-    offpulse_ds = ds_masked[:, 1500:1550]
-    offpulse_mean = np.nanmean(offpulse_ds, axis=1)
-    ds_masked = ds_masked - offpulse_mean[:, np.newaxis]
+    initial_peak_idx = np.nanargmax((np.nansum(ds_masked, axis=1)))
+    #offpulse_ds = ds_masked[:, initial_peak_idx-20:initial_peak_idx-5]
+    #offpulse_mean = np.nanmean(offpulse_ds, axis=1)
+    #ds_masked = ds_masked - offpulse_mean[:, np.newaxis]
     
     # Check masking     
     plt.figure()
@@ -145,8 +146,8 @@ for file in crab_norescaled_filepaths[31:32]:
             beam_slice = beam_copy[peak-20:peak-10]
             median = np.nanmedian(beam_slice)
 
-            lower_ind = np.round(peak - 10* width).astype(int)
-            upper_ind = np.round(peak + 10* width).astype(int)
+            lower_ind = np.round(peak - 7* width).astype(int)
+            upper_ind = np.round(peak + 7* width).astype(int)
 
             beam_copy[lower_ind:upper_ind] = median
 
@@ -156,14 +157,14 @@ for file in crab_norescaled_filepaths[31:32]:
         difference = np.abs(beam_copy2 - np.nanmedian(beam_copy2))
         std = np.nanstd(beam_copy2)
 
-        idxs = np.where(difference >= 1.5 * std)
+        idxs = np.where(difference >= std)
 
         for idx in idxs[0]:
-            beam_copy2[idx] = np.nan
+            beam_copy2[idx-5:idx+5] = np.nan
 
         nanidxs = np.where(np.isnan(beam_copy2))
         for nanidx in nanidxs[0]:
-            beam_slice = beam_copy2[nanidx-7:nanidx+7]
+            beam_slice = beam_copy2[nanidx-20:nanidx+20]
             median = np.nanmedian(beam_slice)
             beam_copy2[nanidx] = median
             
@@ -185,16 +186,24 @@ for file in crab_norescaled_filepaths[31:32]:
     plt.yscale('log')
     plt.ylabel('Normalised sensitivity')
     plt.xlabel('Frequency_bins')
-    plt.savefig('/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/averaged_beam_response')
-
+   # plt.savefig('/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/averaged_beam_response')
+    
     ## CORRECTING ##
     ds_corrected = ds_masked[0:512] / averaged_beam[:, np.newaxis] 
     ds_calibrated = bf_to_jy(ds_corrected, 1)
-    ts_calibrated = np.nanmean(ds_calibrated, axis=0)
-        
-    ## PLOTTING ##
-    peak_idx = np.nanargmax(ts_calibrated)
     
+    offpulse_ds = ds_calibrated[:, initial_peak_idx-100:initial_peak_idx-20]
+    offpulse_mean = np.nanmean(offpulse_ds, axis=1)
+    ds_masked = ds_calibrated - offpulse_mean[:, np.newaxis]
+    
+    ts_calibrated = np.nanmean(ds_masked, axis=0)
+    peak_idx = np.nanargmax(ts_calibrated)
+
+    
+    offpulse_ts = np.nanmean(ts_calibrated[peak_idx-30:peak_idx-20])
+    ts_masked = ts_calibrated - offpulse_ts
+        
+    ## PLOTTING ##    
     #DS after masking, dedispersing, and calibrating. (Normalised & zoomed in)
     plt.figure()
     im = plt.imshow(normalise(ds_calibrated[:, peak_idx-100:peak_idx+100]), aspect='auto',cmap="YlGnBu")
@@ -203,15 +212,25 @@ for file in crab_norescaled_filepaths[31:32]:
     plt.ylabel("Frequency Bins")
     plt.xlabel("Time sample")
     plt.title(f"{i}_{mjd}, centered on t={peak_idx}") 
-    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{i}_{mjd}_ds_calibrated.png")
+    #plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{i}_{mjd}_ds_calibrated.png")
     
     #Time series 
     plt.figure()
-    plt.plot(ts_calibrated / 1000 *5)
+    plt.plot(ts_masked / 1000 *5)
     plt.ylabel("Flux (kJy)")
     plt.xlabel("Time sample")
     plt.title(f"{i}_{mjd}")
     plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{i}_{mjd}_ts.png")
+    
+        #Time series 
+    plt.figure()
+    plt.plot(ts_masked[peak_idx-100:peak_idx+100] / 1000 *5)
+    plt.ylabel("Flux (kJy)")
+    plt.xlabel("Time sample")
+    plt.title(f"{i}_{mjd}")
+    plt.savefig(f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/zoomed_ts_test4.png")
+    
+    pdb.set_trace()
     
     #Spectrum vs. holography response
     fig, ax = plt.subplot_mosaic(
