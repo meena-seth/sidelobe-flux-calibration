@@ -77,6 +77,8 @@ intensity_norm = holography_data['intensity_norm']  #Primary beam response (1024
 fluences = []
 scaled_fluxes = []
 peak_luminosities = []
+peakfreq_fluxes = []
+peakfreq_luminosities = []
 
 event_timestamps = []
 beam_ids = []
@@ -85,13 +87,13 @@ y_at_peak = []
 mjds =[]
 peak_idxs = []
 
-for file in crab_norescaled_filepaths:
+for file in crab_norescaled_filepaths[34:35]:
     # Get file name and index 
     filename = file.split("/")
     mjd = filename[7].split("_")[1].split(".")[0]
     i = crab_norescaled_filepaths.index(file)
     ##
-    
+     
     cascade_obj = cascade.load_cascade_from_file(file)    
     beam = cascade_obj.beams[0]
     
@@ -112,8 +114,9 @@ for file in crab_norescaled_filepaths:
     ts_mask = np.where(ts_difference >= ts_limit)
     
     ds_masked = copy.deepcopy(ds_before)
-    ds_masked[:, ts_mask] = np.nan
-    
+    for mask_idx in ts_mask[0]:
+        ds_masked[:, mask_idx] = np.nanmedian(ds_before, axis=1)
+        
     ## DEDISPERSE TO CRAB DM ##
     cascade_obj.beams[0].intensity = ds_masked
     cascade_obj.dm = 56.7 
@@ -133,15 +136,26 @@ for file in crab_norescaled_filepaths:
     event_time = Time(event_timestamp, scale='utc', location=chime_location)
     sidereal_time = event_time.sidereal_time('apparent').deg
     ha = sidereal_time - source_ra
-    beam_id = int(beam.beam_no)
-    
+    if ha > 180:
+        ha = -1 * np.abs(360 - ha)
+        
     ### PRIMARY BEAM ###
-    ha_idx = np.abs(has_list - ha).argmin()
-    ha_idxs = np.arange(ha_idx-6, ha_idx+6) #12 HAs (1 deg)
-    intensity_norm[np.log10(intensity_norm)>1] = np.nan
-    beam_response = intensity_norm[0:512, ha_idx]
+    if ha > 90 or ha < -90:
+        print(f'''
+                HA of {ha} out of bounds.
+                Averaging holography from 80-90 degrees to get lower limit.
+                ''')
+        ha_idx = 1959
+        ha_idxs = np.arange(1910, 2000) #From HA=80.69 to 89.44
+        beam_response = intensity_norm[0:512, ha_idx] #Just pick something in the middle
+    else:
+        ha_idx = np.abs(has_list - ha).argmin()
+        ha_idxs = np.arange(ha_idx-6, ha_idx+6)
+        beam_response = intensity_norm[0:512, ha_idx]
     
-    pdb.set_trace()
+    beam_id = int(beam.beam_no)
+    intensity_norm[np.log10(intensity_norm)>1] = np.nan
+    
     #Removing RFI from holography
     masked_beams = []
     for index in ha_idxs:
@@ -177,12 +191,12 @@ for file in crab_norescaled_filepaths:
             median = np.nanmedian(beam_slice)
             beam_copy2[nanidx] = median
             
-        plt.figure()
-        plt.plot(beam_response)
-        plt.plot(beam_copy2, color='r')
-        plt.yscale('log')
+        #plt.figure()
+        #plt.plot(beam_response)
+        #plt.plot(beam_copy2, color='r')
+        #plt.yscale('log')
         #plt.savefig(f'/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{index}_masked')
-        plt.close()
+        #plt.close()
 
         masked_beams.append(beam_copy2)
     
@@ -198,7 +212,7 @@ for file in crab_norescaled_filepaths:
 
     offpulse_ts = np.nanmedian(ts_calibrated[peak_idx-50:peak_idx+50])
     ts_masked = ts_calibrated - offpulse_ts
-    
+        
     # Values for peak frequency
     peak_freq = np.nanargmax(ds_calibrated[:, peak_idx], axis=0)
     ts_peak_freq = ds_calibrated[peak_freq, :]
@@ -226,7 +240,8 @@ for file in crab_norescaled_filepaths:
     plt.ylabel("Flux (kJy)")
     plt.xlabel("Time sample")
     plt.title(f"Time series, centered on t={peak_idx}")
-        
+    #plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/tests/23_ts")
+            
     #Spectrum vs. holography response
     fig, ax = plt.subplot_mosaic(
     '''
@@ -260,10 +275,10 @@ for file in crab_norescaled_filepaths:
     ## CALCULATING STUFF 
     ind_max = peak_idx+2*cascade_obj.best_width
     ind_min = peak_idx-2*cascade_obj.best_width
-    integral = np.trapz(ts_calibrated[ind_min:ind_max])
+    integral = np.trapz(ts_masked[ind_min:ind_max])
     fluence = integral * 0.9830400000000001 /1000  * 5 #Jy-s
     
-    flux = np.nanmax(ts_calibrated) * 5
+    flux = np.nanmax(ts_masked) * 5
     peak_luminosity = flux_to_luminosity(flux)
     
     #At peak frequency only 
@@ -276,6 +291,9 @@ for file in crab_norescaled_filepaths:
     scaled_fluxes.append(flux)
     peak_luminosities.append(peak_luminosity)
     
+    peakfreq_fluxes.append(flux_peakfreq)
+    peakfreq_luminosities.append(luminosity_peakfreq)
+    
     event_timestamps.append(event_timestamp)
     beam_ids.append(beam_id)
     has.append(ha)
@@ -285,19 +303,21 @@ for file in crab_norescaled_filepaths:
     plt.figure()
     plt.title(f"{i}_{mjd}")
     plt.text(x=0.5, y=0.5, ha='center', va='center', s=f"""
-                  Flux = {flux}
-                  Fluence = {fluence}
+                  HA = {ha}
+                  Flux = {flux:.2f}
+                  Fluence = {fluence:.2f}
                   Luminosity = {peak_luminosity}
                   
-                  Peak frequency: {freqs[peak_freq]} MHz, idx={peak_freq}
-                  
-                  Flux = {flux_peakfreq}
+                  Peak frequency: {freqs[peak_freq]:.2f} MHz, idx={peak_freq}
+                  Flux = {flux_peakfreq:.2f}
                   Luminosity = {luminosity_peakfreq}
                   Holography value used = {holography_peakfreq}
                   """)
     plt.axis('off')
-    filename = f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{i}_{mjd}.pdf"
+    filename = f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/tests/{i}_{mjd}.pdf"
     save_image(filename)
+    plt.close('all')
+
 
     
     print(f"Spectra for {file} calibrated!")
@@ -307,10 +327,13 @@ for file in crab_norescaled_filepaths:
     Fluence = {fluence}
     Luminosity = {peak_luminosity}
     ''')
+    pdb.set_trace()
+    
     del cascade_obj 
     del ds_corrected
     del ds_masked 
     del ds_before
     continue 
     
-np.savez("rfi_corrected_calibration.npz", mjds=mjds, has=has, y_at_peak=y_at_peak, event_timestamps=event_timestamps, peak_idxs=peak_idxs, beam_ids=beam_ids, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences)
+pdb.set_trace()
+np.savez("rfi_corrected_calibration_1.npz", mjds=mjds, has=has, y_at_peak=y_at_peak, event_timestamps=event_timestamps, peak_idxs=peak_idxs, beam_ids=beam_ids, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences, peakfreq_fluxes=peakfreq_fluxes, peakfreq_luminosities=peakfreq_luminosities)
