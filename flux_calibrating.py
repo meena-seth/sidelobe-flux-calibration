@@ -80,6 +80,20 @@ peak_luminosities = []
 peakfreq_fluxes = []
 peakfreq_luminosities = []
 
+uppersys_errors = []
+lowersys_errors = []
+random_errors = []
+
+uppersys_lumerror = []
+lowersys_lumerror = []
+upperran_lumerror = []
+lowerran_lumerror = []
+    
+uppersys_fluences = []
+lowersys_fluences = []
+upperran_fluences = []
+lowerran_fluences = []
+
 event_timestamps = []
 beam_ids = []
 has = []
@@ -87,7 +101,7 @@ y_at_peak = []
 mjds =[]
 peak_idxs = []
 
-for file in crab_norescaled_filepaths[26:27]:
+for file in crab_norescaled_filepaths[0:1]:
     # Get file name and index 
     filename = file.split("/")
     mjd = filename[7].split("_")[1].split(".")[0]
@@ -145,192 +159,167 @@ for file in crab_norescaled_filepaths[26:27]:
                 HA of {ha} out of bounds.
                 Averaging holography from 80-90 degrees to get lower limit.
                 ''')
-    else:
-        ha_idx = np.abs(has_list - ha).argmin()
-        center_has = np.arange(ha_idx-12, ha_idx+13)
-
-        beam_response = intensity_norm[0:512, ha_idx]
-
-        beam_id = int(beam.beam_no)
+        
+    ha_idx = np.abs(has_list - ha).argmin()
+    center_has = np.arange(ha_idx - 6, ha_idx + 7)
+    beam_id = int(beam.beam_no)
         
         
     intensity_norm[np.log10(intensity_norm)>1] = np.nan
     
     #Removing RFI from holography
-    
     fluxes = []
-    for center_ha in center_has:        
-        beam_response = intensity_norm[0:512, center_ha]
-        beam_response[beam_response==0] = np.nan
-        beam_copy = copy.deepcopy(beam_response)
-        peaks, properties = scipy.signal.find_peaks(beam_copy, prominence=0.0004, width=0.001)
-        widths = properties['widths']
+    timeseries = []
+    for center_ha in center_has:
+        masked_beams = []
+        
+        if ha > 90 or ha < -90:
+            #Average holography between 80-90 degrees
+            ha_idxs =  np.arange(1900, 2000) 
+        else:
+            #Average holography 1 degree around each HA 
+            ha_idxs = np.arange(center_ha - 6, center_ha + 6)
+        
+        for index in ha_idxs:
+            beam_response = intensity_norm[0:512, index]
+            beam_response[beam_response==0] = np.nan
+            beam_copy = copy.deepcopy(beam_response)
+            peaks, properties = scipy.signal.find_peaks(beam_copy, prominence=0.0004, width=0.001)
+            widths = properties['widths']
 
-        for peak, width in zip(peaks, widths):
-            beam_slice = beam_copy[peak-20:peak-10]
-            median = np.nanmedian(beam_slice)
+            for peak, width in zip(peaks, widths):
+                beam_slice = beam_copy[peak-20:peak-10]
+                median = np.nanmedian(beam_slice)
 
-            lower_ind = np.round(peak - 7* width).astype(int)
-            upper_ind = np.round(peak + 7* width).astype(int)
+                lower_ind = np.round(peak - 7* width).astype(int)
+                upper_ind = np.round(peak + 7* width).astype(int)
 
-            beam_copy[lower_ind:upper_ind] = median
+                beam_copy[lower_ind:upper_ind] = median
 
-        peaks2 = scipy.signal.find_peaks(beam_copy)
+            peaks2 = scipy.signal.find_peaks(beam_copy)
 
-        beam_copy2 = copy.deepcopy(beam_copy)
-        difference = np.abs(beam_copy2 - np.nanmedian(beam_copy2))
-        std = np.nanstd(beam_copy2)
+            beam_copy2 = copy.deepcopy(beam_copy)
+            difference = np.abs(beam_copy2 - np.nanmedian(beam_copy2))
+            std = np.nanstd(beam_copy2)
 
-        idxs = np.where(difference >= std)
+            idxs = np.where(difference >= std)
 
-        for idx in idxs[0]:
-            beam_copy2[idx-5:idx+5] = np.nan
+            for idx in idxs[0]:
+                beam_copy2[idx-5:idx+5] = np.nan
 
-        nanidxs = np.where(np.isnan(beam_copy2))
-        for nanidx in nanidxs[0]:
-            beam_slice = beam_copy2[nanidx-20:nanidx+20]
-            median = np.nanmedian(beam_slice)
-            beam_copy2[nanidx] = median
+            nanidxs = np.where(np.isnan(beam_copy2))
+            for nanidx in nanidxs[0]:
+                beam_slice = beam_copy2[nanidx-20:nanidx+20]
+                median = np.nanmedian(beam_slice)
+                beam_copy2[nanidx] = median
     
+            masked_beams.append(beam_copy2)
+    
+        stack = np.vstack(masked_beams)
+        averaged_beam = np.nanmean(stack, axis=0)
         ### CORRECTING ###
-        ds_corrected = ds_masked[0:512] / beam_copy2[:, np.newaxis] 
+        ds_corrected = ds_masked[0:512] / averaged_beam[:, np.newaxis] 
         ds_calibrated = bf_to_jy(ds_corrected, 1)
-    
         ts_calibrated = np.nanmean(ds_calibrated, axis=0)
-
         peak_idx = np.nanargmax(ts_calibrated)
 
         offpulse_ts = np.nanmedian(ts_calibrated[peak_idx-50:peak_idx+50])
         ts_masked = ts_calibrated - offpulse_ts
         
-        flux = np.nanmax(ts_masked) * 5 /1000
+        flux = np.nanmax(ts_masked) * 5
+        
+        timeseries.append(ts_masked)
         fluxes.append(flux)
-
+        
+    #Plotting center HA used vs. Flux
     plt.figure()
     plt.scatter(has_list[center_has], fluxes)
-    plt.scatter(has_list[center_has[12]], fluxes[12], color='r', label='HA of observation=-79.6')
+    plt.scatter(has_list[center_has[6]], fluxes[6], color='r', label='HA of observation=-79.6')
     plt.xlabel('Center HA used')
     plt.ylabel('Flux Density (kJy)')
-    plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/zoomed_noaveraging_centerHA_vs_flux")
+    #plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/zoomed_centerHA_vs_flux2")
     
-    pdb.set_trace()
-
-    f'''
-    ### PLOTTING ###   
-    #DS after masking, dedispersing, and calibrating. (Normalised & zoomed in)
-    plt.figure()
-    im = plt.imshow(normalise(ds_calibrated[:, peak_idx-100:peak_idx+100]), aspect='auto',cmap="YlGnBu")
-    cbar = plt.colorbar(im)
-    cbar.set_label("Flux (Jy)")
-    plt.ylabel("Frequency Bins")
-    plt.xlabel("Time sample")
-    plt.title(f"DS centered on t={peak_idx}") 
-    
-    #Time series 
-    plt.figure()
-    plt.plot(ts_masked / 1000 *5)
-    plt.ylabel("Flux (kJy)")
-    plt.xlabel("Time sample")
-    plt.title(f"Time series, all samples")
-    
-    #Time series (Zoomed in)
-    plt.figure()
-    plt.plot(ts_masked[peak_idx-100:peak_idx+100] / 1000 *5)
-    plt.ylabel("Flux (kJy)")
-    plt.xlabel("Time sample")
-    plt.title(f"Time series, centered on t={peak_idx}")
-    #plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/tests/23_ts")
-            
-    #Spectrum vs. holography response
-    fig, ax = plt.subplot_mosaic(
-    '''
-
-    ''',
-    constrained_layout = True,
-    figsize = (10, 8), 
-    sharex = True)
-    
-    ax['A'].plot(ds_calibrated[:, peak_idx] / np.nanmax(ds_calibrated[:, peak_idx], axis=0))
-    ax['A'].set_ylabel('Normalised flux')
-    
-    ax['B'].plot(beam_response)
-    ax['B'].plot(averaged_beam, color='r')
-    ax['B'].set_yscale('log')
-    ax['B'].set_ylabel('Normalised sensitivity')
-    ax['B'].set_xlabel('Frequency bins')
-    
-    plt.suptitle(f"""Normalised spectrum & beam response
-                     t={peak_idx}, HA={ha_idx}""")
-    
-    
-    #(Peak frequency only) Time series
-    plt.figure()
-    plt.plot(ts_peak_freq / 1000 *5)
-    plt.ylabel("Flux (kJy)")
-    plt.xlabel("Time sample")
-    plt.title(f"Time series, only at {freqs[peak_freq]} MHz")
-    '''
-        
     ## CALCULATING STUFF 
+    
+    # Systematic error
+    actual_flux = fluxes[6]
+    uppersys_error = np.abs(np.max(fluxes) - actual_flux)
+    lowersys_error = np.abs(np.max(fluxes - actual_flux))
+    pdb.set_trace()
+    # Random error 
+    actual_ts = timeseries[6]
+    noise_ts = actual_ts[peak_idx-1000:peak_idx+1000]
+    random_error = np.nanstd(noise_ts) * 5
+            
+    # Fluence & luminosity 
     ind_max = peak_idx+2*cascade_obj.best_width
     ind_min = peak_idx-2*cascade_obj.best_width
-    integral = np.trapz(ts_masked[ind_min:ind_max])
-    fluence = integral * 0.9830400000000001 /1000  * 5 #Jy-s
     
-    flux = np.nanmax(ts_masked) * 5
+    integral = np.trapz(actual_ts[ind_min:ind_max])
+
+    uppersys_integral = np.trapz(actual_ts[ind_min:ind_max] + uppersys_error)
+    lowersys_integral = np.trapz(actual_ts[ind_min:ind_max] - lowersys_error)
+    upperran_integral = np.trapz(actual_ts[ind_min:ind_max] + random_error/5)
+    lowerran_integral = np.trapz(actual_ts[ind_min:ind_max] - random_error/5)
+    
+    fluence = integral * 0.9830400000000001 / 1000  * 5 #Jy-s
+    uppersys_fluence = uppersys_integral * 0.9830400000000001 /1000  * 5
+    lowersys_fluence = lowersys_integral * 0.9830400000000001 /1000  * 5
+    upperran_fluence = upperran_integral * 0.9830400000000001 /1000  * 5
+    lowerran_fluence = lowerran_integral * 0.9830400000000001 /1000  * 5
+                            
     peak_luminosity = flux_to_luminosity(flux)
+    uppersys_luminosity = flux_to_luminosity(flux + uppersys_error)
+    lowersys_luminosity = flux_to_luminosity(flux - lowersys_error)
     
-    #At peak frequency only 
-    flux_peakfreq = np.nanmax(ts_peak_freq) * 5 
-    luminosity_peakfreq = flux_to_luminosity(flux_peakfreq)
-    holography_peakfreq = averaged_beam[peak_freq]
+    upperran_luminosity = flux_to_luminosity(flux + random_error)
+    lowerran_luminosity = flux_to_luminosity(flux - random_error)
     
     ## SAVING 
     fluences.append(fluence)
-    scaled_fluxes.append(flux)
+    scaled_fluxes.append(actual_flux)
     peak_luminosities.append(peak_luminosity)
     
-    peakfreq_fluxes.append(flux_peakfreq)
-    peakfreq_luminosities.append(luminosity_peakfreq)
+    uppersys_errors.append(uppersys_error)
+    lowersys_errors.append(lowersys_error)
+    random_errors.append(random_error)
+    
+    uppersys_lumerror.append(uppersys_luminosity - peak_luminosity)
+    lowersys_lumerror.append(peak_luminosity - lowersys_luminosity)
+    upperran_lumerror.append(upperran_luminosity - peak_luminosity)
+    lowerran_lumerror.append(peak_luminosity - lowerran_luminosity)
+    
+    uppersys_fluences.append(uppersys_fluence)
+    lowersys_fluences.append(lowersys_fluence)
+    upperran_fluences.append(upperran_fluence)
+    lowerran_fluences.append(lowerran_fluence)
     
     event_timestamps.append(event_timestamp)
-    beam_ids.append(beam_id)
     has.append(ha)
     mjds.append(mjd)
     peak_idxs.append(peak_idx)
     
-    plt.figure()
-    plt.title(f"{i}_{mjd}")
-    plt.text(x=0.5, y=0.5, ha='center', va='center', s=f"""
-                  HA = {ha}
-                  Flux = {flux:.2f}
-                  Fluence = {fluence:.2f}
-                  Luminosity = {peak_luminosity}
-                  
-                  Peak frequency: {freqs[peak_freq]:.2f} MHz, idx={peak_freq}
-                  Flux = {flux_peakfreq:.2f}
-                  Luminosity = {luminosity_peakfreq}
-                  Holography value used = {holography_peakfreq}
-                  """)
-    plt.axis('off')
-    #filename = f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/tests/{i}_{mjd}.pdf"
-    #save_image(filename)
-    plt.close('all')
 
     print(f"Spectra for {file} calibrated!")
     print(f'''
     Observation: {i}_{mjd}
     Flux = {flux}
+    
+    Upper system error = {uppersys_error}
+    Lower system error = {lowersys_error}
+    Random error = {random_error}
+    
     Fluence = {fluence}
     Luminosity = {peak_luminosity}
     ''')
-    pdb.set_trace()
     
     del cascade_obj 
     del ds_corrected
     del ds_masked 
     del ds_before
+    del timeseries
+    del fluxes
     continue 
     
 pdb.set_trace()
-np.savez("rfi_corrected_calibration_1.npz", mjds=mjds, has=has, y_at_peak=y_at_peak, event_timestamps=event_timestamps, peak_idxs=peak_idxs, beam_ids=beam_ids, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences, peakfreq_fluxes=peakfreq_fluxes, peakfreq_luminosities=peakfreq_luminosities)
+np.savez("/arc/projects/chime_frb/mseth/error_rfi_corrected_calibration.npz", mjds=mjds, has=has, event_timestamps=event_timestamps, peak_idxs=peak_idxs, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences, uppersys_errors=uppersys_errors, lowersys_errors=lowersys_errors, random_errors=random_errors, uppersys_lumerror=uppersys_lumerror, lowersys_lumerror=lowersys_lumerror, upperran_lumerror=upperran_lumerror, lowerran_lumerror=lowerran_lumerror, uppersys_fluences=uppersys_fluences, lowersys_fluences=lowersys_fluences, upperran_fluences=upperran_fluences, lowerran_fluences=lowerran_fluences)
