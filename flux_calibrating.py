@@ -87,7 +87,7 @@ y_at_peak = []
 mjds =[]
 peak_idxs = []
 
-for file in crab_norescaled_filepaths[34:35]:
+for file in crab_norescaled_filepaths[26:27]:
     # Get file name and index 
     filename = file.split("/")
     mjd = filename[7].split("_")[1].split(".")[0]
@@ -115,7 +115,7 @@ for file in crab_norescaled_filepaths[34:35]:
     
     ds_masked = copy.deepcopy(ds_before)
     for mask_idx in ts_mask[0]:
-        ds_masked[:, mask_idx] = np.nanmedian(ds_before, axis=1)
+        ds_masked[:, mask_idx] = np.nan
         
     ## DEDISPERSE TO CRAB DM ##
     cascade_obj.beams[0].intensity = ds_masked
@@ -139,27 +139,28 @@ for file in crab_norescaled_filepaths[34:35]:
     if ha > 180:
         ha = -1 * np.abs(360 - ha)
         
-    ### PRIMARY BEAM ###
+    ### PRIMARY BEAM ##
     if ha > 90 or ha < -90:
         print(f'''
                 HA of {ha} out of bounds.
                 Averaging holography from 80-90 degrees to get lower limit.
                 ''')
-        ha_idx = 1959
-        ha_idxs = np.arange(1910, 2000) #From HA=80.69 to 89.44
-        beam_response = intensity_norm[0:512, ha_idx] #Just pick something in the middle
     else:
         ha_idx = np.abs(has_list - ha).argmin()
-        ha_idxs = np.arange(ha_idx-6, ha_idx+6)
+        center_has = np.arange(ha_idx-12, ha_idx+13)
+
         beam_response = intensity_norm[0:512, ha_idx]
-    
-    beam_id = int(beam.beam_no)
+
+        beam_id = int(beam.beam_no)
+        
+        
     intensity_norm[np.log10(intensity_norm)>1] = np.nan
     
     #Removing RFI from holography
-    masked_beams = []
-    for index in ha_idxs:
-        beam_response = intensity_norm[0:512, index]
+    
+    fluxes = []
+    for center_ha in center_has:        
+        beam_response = intensity_norm[0:512, center_ha]
         beam_response[beam_response==0] = np.nan
         beam_copy = copy.deepcopy(beam_response)
         peaks, properties = scipy.signal.find_peaks(beam_copy, prominence=0.0004, width=0.001)
@@ -190,33 +191,31 @@ for file in crab_norescaled_filepaths[34:35]:
             beam_slice = beam_copy2[nanidx-20:nanidx+20]
             median = np.nanmedian(beam_slice)
             beam_copy2[nanidx] = median
-            
-        #plt.figure()
-        #plt.plot(beam_response)
-        #plt.plot(beam_copy2, color='r')
-        #plt.yscale('log')
-        #plt.savefig(f'/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/{index}_masked')
-        #plt.close()
+    
+        ### CORRECTING ###
+        ds_corrected = ds_masked[0:512] / beam_copy2[:, np.newaxis] 
+        ds_calibrated = bf_to_jy(ds_corrected, 1)
+    
+        ts_calibrated = np.nanmean(ds_calibrated, axis=0)
 
-        masked_beams.append(beam_copy2)
-    
-    stack = np.vstack(masked_beams)
-    averaged_beam = np.nanmean(stack, axis=0)
-    
-    ### CORRECTING ###
-    ds_corrected = ds_masked[0:512] / averaged_beam[:, np.newaxis] 
-    ds_calibrated = bf_to_jy(ds_corrected, 1)
-    
-    ts_calibrated = np.nanmean(ds_calibrated, axis=0)
-    peak_idx = np.nanargmax(ts_calibrated)
+        peak_idx = np.nanargmax(ts_calibrated)
 
-    offpulse_ts = np.nanmedian(ts_calibrated[peak_idx-50:peak_idx+50])
-    ts_masked = ts_calibrated - offpulse_ts
+        offpulse_ts = np.nanmedian(ts_calibrated[peak_idx-50:peak_idx+50])
+        ts_masked = ts_calibrated - offpulse_ts
         
-    # Values for peak frequency
-    peak_freq = np.nanargmax(ds_calibrated[:, peak_idx], axis=0)
-    ts_peak_freq = ds_calibrated[peak_freq, :]
-            
+        flux = np.nanmax(ts_masked) * 5 /1000
+        fluxes.append(flux)
+
+    plt.figure()
+    plt.scatter(has_list[center_has], fluxes)
+    plt.scatter(has_list[center_has[12]], fluxes[12], color='r', label='HA of observation=-79.6')
+    plt.xlabel('Center HA used')
+    plt.ylabel('Flux Density (kJy)')
+    plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/zoomed_noaveraging_centerHA_vs_flux")
+    
+    pdb.set_trace()
+
+    f'''
     ### PLOTTING ###   
     #DS after masking, dedispersing, and calibrating. (Normalised & zoomed in)
     plt.figure()
@@ -245,8 +244,7 @@ for file in crab_norescaled_filepaths[34:35]:
     #Spectrum vs. holography response
     fig, ax = plt.subplot_mosaic(
     '''
-    A
-    B
+
     ''',
     constrained_layout = True,
     figsize = (10, 8), 
@@ -271,6 +269,7 @@ for file in crab_norescaled_filepaths[34:35]:
     plt.ylabel("Flux (kJy)")
     plt.xlabel("Time sample")
     plt.title(f"Time series, only at {freqs[peak_freq]} MHz")
+    '''
         
     ## CALCULATING STUFF 
     ind_max = peak_idx+2*cascade_obj.best_width
@@ -314,12 +313,10 @@ for file in crab_norescaled_filepaths[34:35]:
                   Holography value used = {holography_peakfreq}
                   """)
     plt.axis('off')
-    filename = f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/tests/{i}_{mjd}.pdf"
-    save_image(filename)
+    #filename = f"/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/tests/{i}_{mjd}.pdf"
+    #save_image(filename)
     plt.close('all')
 
-
-    
     print(f"Spectra for {file} calibrated!")
     print(f'''
     Observation: {i}_{mjd}

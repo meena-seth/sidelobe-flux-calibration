@@ -13,8 +13,6 @@ ha_all[ha_all > -20] = np.nan
 scaled_flux_all = file['scaled_fluxes']
 fluences_all = file['fluence']
 luminosities_all = file['peak_luminosity']
-
-pdb.set_trace()
 flux_peakfreq = file['peakfreq_fluxes']
 
 #file_2 = np.load('/')
@@ -52,7 +50,7 @@ plt.figure()
 plt.hist(scaled_flux_all/10**3, bins='auto')
 plt.ylabel("No. of pulses")
 plt.xlabel("Flux (kJy)")
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/flux_scaled")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/flux_scaled")
 
 plt.figure()
 plt.hist(scaled_flux_all/10**3, bins='auto')
@@ -60,14 +58,14 @@ plt.yscale('log')
 plt.xscale('log')
 plt.ylabel("No. of pulses")
 plt.xlabel("Flux (kJy)")
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/loglog_flux_scaled")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/loglog_flux_scaled")
 
 # Flux from max frequency
 plt.figure()
 plt.hist(flux_peakfreq/10**3, bins='auto')
 plt.ylabel("No. of pulses")
 plt.xlabel("Flux (kJy)")
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/maxfreq_flux")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/maxfreq_flux")
 
 
 # Fluence
@@ -75,14 +73,14 @@ plt.figure()
 plt.hist(fluences_all*5/10**3, bins=5)
 plt.ylabel("No. of pulses")
 plt.xlabel("Fluence (Jy-s)")
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Fluence_scaled")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Fluence_scaled")
 
 # Luminosity
 plt.figure()
 plt.hist(luminosities_all, bins='auto')
 plt.ylabel("No. of pulses")
 plt.xlabel("Peak luminosity (erg/s/Hz)")
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Peak_luminosities")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Peak_luminosities")
 
 
 # HA vs. flux 
@@ -90,16 +88,17 @@ plt.figure()
 plt.scatter(ha_all, scaled_flux_all/10**3)
 plt.ylabel("Flux Density(kJy)")
 plt.xlabel("HA (deg from zenith)")
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/HA_vs_flux")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/HA_vs_flux")
 
-pdb.set_trace()
 #Flux vs. averaging over HAs
-HAs = np.arange(1, 13)
-fluxes = np.array([31610.744352056296, 31227.94811519268, 31180.75070503412, 31335.05908287224, 31599.972619751497, 31458.59920473724, 31674.614225323014, 31361.83141869902, 31491.369605496762, 31194.537276722192, 31320.065288796774, 31012.57054185125])
+HAs = np.arange(2, 19)
+fluxes = np.array([52096.68325609861, 52270.06567006741, 51792.12609320032, 51595.514901003204, 51832.69808801434, 51585.64186349405, 52115.78416289081, 51762.51520175683, 51883.451171568246, 51672.30440841518, 51842.395816000804, 51556.188084447815, 51928.3719295107, 51457.57744949451, 51859.135244271296, 51721.598602621816, 51918.34978317152])
 
-pdb.set_trace()
 plt.figure()
 plt.scatter(HAs, fluxes/10**3)
+plt.scatter(x=1, y=53418.59567092105/1000, color='r', label="HA of observation=-79.6")
+plt.scatter(x=12, y=51842.395816000804/1000, color='b', label="Averaged over 1 degree")
 plt.ylabel("Flux Density(kJy)")
 plt.xlabel("no. of HAs averaged over")
-#plt.savefig("averaging_HAs_vs_flux")
+plt.legend()
+plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/averaging_HAs_vs_flux")
