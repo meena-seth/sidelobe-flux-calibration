@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pdb
 
 #### Load in flux calibration values ####
-file = np.load('/arc/projects/chime_frb/mseth/rfi_corrected_calibration_1.npz', allow_pickle=True)
+file = np.load('/arc/projects/chime_frb/mseth/error_rfi_corrected_calibration.npz', allow_pickle=True)
 
 mjd_all = file['mjds']
 ha_all = file['has']
@@ -13,7 +13,23 @@ ha_all[ha_all > -20] = np.nan
 scaled_flux_all = file['scaled_fluxes']
 fluences_all = file['fluence']
 luminosities_all = file['peak_luminosity']
-flux_peakfreq = file['peakfreq_fluxes']
+#flux_peakfreq = file['peakfreq_fluxes']
+
+sys_errors = np.array([file['lowersys_errors'], file['uppersys_errors']])
+random_errors=file['random_errors']
+sys_errors[sys_errors==0]=np.max(sys_errors)
+combined_error = np.sqrt(np.square(sys_errors) + np.square(random_errors))
+
+sys_lumerrors = np.array([file['lowersys_lumerror'], file['uppersys_lumerror']])
+sys_lumerrors[sys_lumerrors==0]=np.max(sys_lumerrors)
+ran_lumerrors = np.array([file['lowerran_lumerror'], file['upperran_lumerror']])
+combined_lumerror = np.sqrt(np.square(sys_lumerrors) + np.square(ran_lumerrors))
+
+
+sys_fluerrors = np.array([fluences_all - file['lowersys_fluences'], file['uppersys_fluences'] - fluences_all])
+sys_fluerrors[sys_fluerrors==0]=np.max(sys_fluerrors)
+ran_fluerrors = np.array([fluences_all - file['lowerran_fluences'], file['upperran_fluences'] - fluences_all])
+combined_fluerror = np.sqrt(np.square(sys_fluerrors) + np.square(ran_fluerrors))
 
 #file_2 = np.load('/')
 #mjd_2 = file_2['mjd']
@@ -45,50 +61,71 @@ mjd = mjd_all[good_obs]
 
 #######################################
 
-# Flux
-plt.figure()
-plt.hist(scaled_flux_all/10**3, bins='auto')
-plt.ylabel("No. of pulses")
-plt.xlabel("Flux (kJy)")
-#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/flux_scaled")
+# Flux histogram 
+flux_hist, bin_edges = np.histogram(scaled_flux_all/10**3, bins=14)
+bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+bin_width = bin_edges[1] - bin_edges[0]
 
 plt.figure()
-plt.hist(scaled_flux_all/10**3, bins='auto')
-plt.yscale('log')
-plt.xscale('log')
-plt.ylabel("No. of pulses")
-plt.xlabel("Flux (kJy)")
-#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/loglog_flux_scaled")
+plt.bar(bin_centers, flux_hist, width=bin_width, align='center')
+#plt.scatter(bin_centers, flux_hist)
+#plt.yscale('log')
+#plt.xscale('log')
+plt.ylabel('Number of Pulses')
+plt.xlabel('Flux Density (kJy)')
+plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/tests/loglogscatterflux2")
 
-# Flux from max frequency
+pdb.set_trace()
+
+# Fluence histogram 
+fluence_hist, bin_edges = np.histogram(fluences_all/10**3)
+bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+bin_width = bin_edges[1] - bin_edges[0]
+
 plt.figure()
-plt.hist(flux_peakfreq/10**3, bins='auto')
-plt.ylabel("No. of pulses")
-plt.xlabel("Flux (kJy)")
-#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/maxfreq_flux")
+#plt.bar(bin_centers, fluence_hist, width=bin_width, align='center')
+plt.hist(fluences_all, bins='auto')
+plt.ylabel('Number of Pulses')
+plt.xlabel('Fluence (Jy-s)')
+plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Fluence_hist")
 
+# Luminosity histogram 
+lum_hist, bin_edges = np.histogram(fluences_all/10**3)
+bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+bin_width = bin_edges[1] - bin_edges[0]
 
-# Fluence
 plt.figure()
-plt.hist(fluences_all*5/10**3, bins=5)
-plt.ylabel("No. of pulses")
-plt.xlabel("Fluence (Jy-s)")
-#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Fluence_scaled")
-
-# Luminosity
-plt.figure()
+#plt.bar(bin_centers, lum_hist, width=bin_width, align='center')
 plt.hist(luminosities_all, bins='auto')
-plt.ylabel("No. of pulses")
-plt.xlabel("Peak luminosity (erg/s/Hz)")
-#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Peak_luminosities")
+plt.ylabel('Number of Pulses')
+plt.xlabel('Luminosity (ergs/s/Hz)')
+plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Luminosity_hist")
 
 
-# HA vs. flux 
+
+pdb.set_trace()
+
+## HA vs Flux (with errors) ##
+
+#Combined error
 plt.figure()
-plt.scatter(ha_all, scaled_flux_all/10**3)
-plt.ylabel("Flux Density(kJy)")
-plt.xlabel("HA (deg from zenith)")
-#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/HA_vs_flux")
+plt.scatter(ha_all, scaled_flux_all/10**3, s=15)
+plt.errorbar(ha_all, scaled_flux_all/10**3, yerr=combined_error/1000, capsize=2, ls='none')
+plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/combined_error_HA_vs_flux")
+
+#Systematic error only
+plt.figure()
+plt.scatter(ha_all, scaled_flux_all/10**3, s=15)
+plt.errorbar(ha_all, scaled_flux_all/10**3, yerr=sys_errors/1000, capsize=2, ls='none', label='Random error')
+plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/sys_error_HA_vs_flux")
+
+#Random error only
+plt.figure()
+plt.scatter(ha_all, scaled_flux_all/10**3, s=15)
+plt.errorbar(ha_all, scaled_flux_all/10**3, yerr=random_errors/1000, capsize=2, ls='none', label='Random error')
+plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/ran_error_HA_vs_flux")
+pdb.set_trace()
+
 
 #Flux vs. averaging over HAs
 HAs = np.arange(2, 19)

@@ -101,7 +101,7 @@ y_at_peak = []
 mjds =[]
 peak_idxs = []
 
-for file in crab_norescaled_filepaths[0:1]:
+for file in crab_norescaled_filepaths:
     # Get file name and index 
     filename = file.split("/")
     mjd = filename[7].split("_")[1].split(".")[0]
@@ -245,7 +245,6 @@ for file in crab_norescaled_filepaths[0:1]:
     actual_flux = fluxes[6]
     uppersys_error = np.abs(np.max(fluxes) - actual_flux)
     lowersys_error = np.abs(np.max(fluxes - actual_flux))
-    pdb.set_trace()
     # Random error 
     actual_ts = timeseries[6]
     noise_ts = actual_ts[peak_idx-1000:peak_idx+1000]
