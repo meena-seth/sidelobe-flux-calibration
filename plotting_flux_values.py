@@ -30,6 +30,7 @@ sys_fluerrors = np.array([fluences_all - file['lowersys_fluences'], file['uppers
 sys_fluerrors[sys_fluerrors==0]=np.max(sys_fluerrors)
 ran_fluerrors = np.array([fluences_all - file['lowerran_fluences'], file['upperran_fluences'] - fluences_all])
 combined_fluerror = np.sqrt(np.square(sys_fluerrors) + np.square(ran_fluerrors))
+           
 
 #file_2 = np.load('/')
 #mjd_2 = file_2['mjd']
