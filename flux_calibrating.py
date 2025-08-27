@@ -94,12 +94,67 @@ lowersys_fluences = []
 upperran_fluences = []
 lowerran_fluences = []
 
+Nimmo_x = []
+
+
 event_timestamps = []
 beam_ids = []
 has = []
 y_at_peak = []
 mjds =[]
 peak_idxs = []
+
+for file in crab_norescaled_filepaths:
+    # Get file name and index 
+    filename = file.split("/")
+    mjd = filename[7].split("_")[1].split(".")[0]
+    i = crab_norescaled_filepaths.index(file)
+    ##
+     
+    cascade_obj = cascade.load_cascade_from_file(file)    
+    beam = cascade_obj.beams[0]
+    
+    cascade_obj.dm = 56.7
+    beam.subband(1024,56.7,apply_weights=False)  #Downsample to 1024 frequency
+        
+    ### RFI MASKING DATA ###
+    cascade_obj.dm = 0  # Using DM 0 
+    ds_before = cascade_obj.beams[0].intensity 
+    ds_copy = copy.deepcopy(ds_before)
+    ds_copy = normalise(ds_copy)
+    ts_before = np.nanmean(ds_copy, axis=0)
+
+    ts_median = np.nanmedian(ts_before)
+    ts_iqr = iqr(ts_before)
+    ts_difference = np.abs(ts_before - ts_median)
+    ts_limit = ts_iqr * 2
+    ts_mask = np.where(ts_difference >= ts_limit)
+    
+    ds_masked = copy.deepcopy(ds_before)
+    for mask_idx in ts_mask[0]:
+        ds_masked[:, mask_idx] = np.nan
+        
+    ## DEDISPERSE TO CRAB DM ##
+    cascade_obj.beams[0].intensity = ds_masked
+    cascade_obj.dm = 56.7 
+    
+    # Subtract median around pulse from dynamic spectrum
+    initial_peak_idx = np.nanargmax((np.nansum(ds_masked, axis=1))) 
+    offpulse_median = np.nanmedian(ds_masked[:, initial_peak_idx-200:initial_peak_idx+200], axis=1)
+    ds_masked = ds_masked - offpulse_median[:, np.newaxis]
+        
+    width = cascade_obj.best_width * 0.9830400000000001 / 1000 * 0.4
+    Nimmo_x.append(width)
+    
+    del cascade_obj
+    del ds_masked 
+    continue 
+
+    
+    
+np.savez("/arc/projects/chime_frb/mseth/widths.npz", Nimmo_x=Nimmo_x)
+
+pdb.set_trace()
 
 for file in crab_norescaled_filepaths:
     # Get file name and index 
@@ -297,7 +352,6 @@ for file in crab_norescaled_filepaths:
     has.append(ha)
     mjds.append(mjd)
     peak_idxs.append(peak_idx)
-    
 
     print(f"Spectra for {file} calibrated!")
     print(f'''
@@ -320,5 +374,5 @@ for file in crab_norescaled_filepaths:
     del fluxes
     continue 
     
-pdb.set_trace()
+
 np.savez("/arc/projects/chime_frb/mseth/error_rfi_corrected_calibration.npz", mjds=mjds, has=has, event_timestamps=event_timestamps, peak_idxs=peak_idxs, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences, uppersys_errors=uppersys_errors, lowersys_errors=lowersys_errors, random_errors=random_errors, uppersys_lumerror=uppersys_lumerror, lowersys_lumerror=lowersys_lumerror, upperran_lumerror=upperran_lumerror, lowerran_lumerror=lowerran_lumerror, uppersys_fluences=uppersys_fluences, lowersys_fluences=lowersys_fluences, upperran_fluences=upperran_fluences, lowerran_fluences=lowerran_fluences)

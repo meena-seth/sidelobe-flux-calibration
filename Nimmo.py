@@ -48,6 +48,40 @@ plt.text(1.5e-6,1e-4,r'$10^{24}$ K',rotation=30,color='k',alpha=0.3)
 #plt.text(5e-6,1e-7,r'$10^{20}$ K',rotation=30,color='k',alpha=0.3)
 #plt.text(5e-5,1e-9,r'$10^{16}$ K',rotation=30,color='k',alpha=0.3)
 
+
+# MY DATA
+file = np.load('/arc/projects/chime_frb/mseth/error_rfi_corrected_calibration.npz', allow_pickle=True)
+luminosity = file['peak_luminosity']
+ha = file['has']
+
+
+sys_lumerrors = np.array([file['lowersys_lumerror'], file['uppersys_lumerror']])
+sys_lumerrors[sys_lumerrors==0]=np.max(sys_lumerrors)
+ran_lumerrors = np.array([file['lowerran_lumerror'], file['upperran_lumerror']])
+combined_lumerror = np.sqrt(np.square(sys_lumerrors) + np.square(ran_lumerrors))
+
+
+sys_lumerror2 = np.array([file['lowersys_lumerror'][ha<=-90], file['uppersys_lumerror'][ha<=-90]])
+sys_lumerror2[sys_lumerror2==0]=np.max(sys_lumerrors)
+ran_lumerror2 = np.array([file['lowerran_lumerror'][ha<=-90], file['upperran_lumerror'][ha<=-90]])
+combined_lumerror2 = np.sqrt(np.square(sys_lumerror2) + np.square(ran_lumerror2))
+
+
+width_file = np.load('/arc/projects/chime_frb/mseth/widths.npz')
+data_x = width_file['Nimmo_x']
+data_x2 = data_x[ha<=-90]
+luminosity2 = luminosity[ha<=-90]
+
+plt.errorbar(data_x, luminosity/10**20, yerr=combined_lumerror/10**20, ls='none', color='blueviolet', capsize=3, elinewidth=0.8, alpha=0.5)
+plt.errorbar(data_x2, luminosity2/10**20, yerr=combined_lumerror2/10**20, ls='none', color='indigo', capsize=3, elinewidth=0.8, alpha=0.7)
+
+plt.scatter(data_x,luminosity/10**20,alpha=0.5,color='blueviolet',marker='x')
+plt.scatter(data_x[ha<=-90], luminosity[ha<=-90]/10**20, alpha=0.8,color='indigo',marker='x')
+plt.text(1e-4,1e4,'This work',color='blueviolet')
+#plt.fill_between([np.min(sgrx),np.max(sgrx)],[np.min(sgry),np.min(sgry)],[np.max(sgry),np.max(sgry)],alpha=0.7,color='pink')
+
+
+
 # Pulsars general (psrcat)
 psr=open('/arc/projects/chime_frb/mseth/plots/data_from_nimmo/pulsars.txt','r')
 lines=psr.readlines()
@@ -57,9 +91,9 @@ for n in lines:
     psrx.append(float(n.split()[4])) 
     psry.append(float(n.split()[5]))
 
-
 plt.scatter(psrx,psry,color='pink',marker='x',alpha=0.3)
 plt.text(1e-5,1e-5,'Pulsars',color='pink')
+
 
 # RRATs general
 rrat=open('/arc/projects/chime_frb/mseth/plots/data_from_nimmo/rrats.txt','r')
@@ -126,28 +160,6 @@ for n in range(len(frb180916)):
 plt.scatter(frb180916x,frb180916y,color='blue',marker='x',alpha=0.4)
 plt.text(7e-2,5e9,'FRB 20180916B',color='blue')
 
-# SGR 1935+2154 range
-sgr = np.loadtxt('/arc/projects/chime_frb/mseth/plots/data_from_nimmo/sgr1935.txt')
-sgrx=[]
-sgry=[]
-for n in range(len(sgr)):
-    sgrx = np.append(sgrx,sgr[n][1])
-    sgry = np.append(sgry,sgr[n][0])
-
-plt.scatter(sgrx,sgry,alpha=0.8,color='purple',marker='x')
-plt.text(5e-3,1e5,'SGR 1935+2154',color='purple')
-#plt.fill_between([np.min(sgrx),np.max(sgrx)],[np.min(sgry),np.min(sgry)],[np.max(sgry),np.max(sgry)],alpha=0.7,color='pink')
-
-test = np.loadtxt('/arc/projects/chime_frb/mseth/plots/data_from_nimmo/test.txt')
-testx=[]
-testy=[]
-
-for n in range(len(test)):
-    testx = np.append(testx,test[n][1])
-    testy = np.append(testy,test[n][0])
-
-plt.scatter(testx,testy,alpha=0.8,color='r',marker='x')
-#plt.text(5e-3,1e5,'TEST',color='r')
 
 # FRB 190711
 # Macquart+2020, Kumar+2020
