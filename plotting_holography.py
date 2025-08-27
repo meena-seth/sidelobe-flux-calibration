@@ -7,12 +7,15 @@ freqs = np.linspace(400.390625, 800, 1024) #1024 frequencies
 has = np.linspace(-105, 104.90278, 2160)   #2160 HAs in holography 
 
 ## LOADING IN DATA 
-path_to_holography = '/arc/projects/chime_frb/mseth/Sorted_Normalized_holography_data.npz'
+path_to_holography = '/arc/projects/chime_frb/mseth/Normalized_holography_data.npz'
 
 holography = np.load(path_to_holography, allow_pickle=True)
 
 
 ## PLOTTING 
+# 
+
+
 #Plotting xx and yy 
 fig, ax = plt.subplot_mosaic(
     '''
@@ -54,4 +57,5 @@ ax['A'].set_xlabel('HA')
 ax['A'].set_title('Intensity')
 
 fig.colorbar(pcm, ax=ax['A'])
+plt.savefig("
 
