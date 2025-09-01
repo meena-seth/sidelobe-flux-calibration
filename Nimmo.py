@@ -82,6 +82,19 @@ plt.text(1e-4,1e4,'This work',color='blueviolet')
 
 
 
+# SGR 1935+2154 range
+sgr = np.loadtxt('/arc/projects/chime_frb/mseth/plots/data_from_nimmo/sgr1935.txt')
+sgrx=[]
+sgry=[]
+for n in range(len(sgr)):
+    sgrx = np.append(sgrx,sgr[n][1])
+    sgry = np.append(sgry,sgr[n][0])
+
+plt.scatter(sgrx,sgry,alpha=0.8,color='darkred',marker='x')
+plt.text(5e-3,1e5,'SGR 1935+2154',color='darkred')
+#plt.fill_between([np.min(sgrx),np.max(sgrx)],[np.min(sgry),np.min(sgry)],[np.max(sgry),np.max(sgry)],alpha=0.7,color='pink')
+
+
 # Pulsars general (psrcat)
 psr=open('/arc/projects/chime_frb/mseth/plots/data_from_nimmo/pulsars.txt','r')
 lines=psr.readlines()
