@@ -30,7 +30,7 @@ sys_fluerrors = np.array([fluences_all - file['lowersys_fluences'], file['uppers
 sys_fluerrors[sys_fluerrors==0]=np.max(sys_fluerrors)
 ran_fluerrors = np.array([fluences_all - file['lowerran_fluences'], file['upperran_fluences'] - fluences_all])
 combined_fluerror = np.sqrt(np.square(sys_fluerrors) + np.square(ran_fluerrors))
-           
+
 
 #file_2 = np.load('/')
 #mjd_2 = file_2['mjd']
@@ -74,9 +74,8 @@ plt.bar(bin_centers, flux_hist, width=bin_width, align='center')
 #plt.xscale('log')
 plt.ylabel('Number of Pulses')
 plt.xlabel('Flux Density (kJy)')
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/tests/loglogscatterflux2")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/tests/loglogscatterflux2")
 
-pdb.set_trace()
 
 # Fluence histogram 
 fluence_hist, bin_edges = np.histogram(fluences_all/10**3)
@@ -88,7 +87,7 @@ plt.figure()
 plt.hist(fluences_all, bins='auto')
 plt.ylabel('Number of Pulses')
 plt.xlabel('Fluence (Jy-s)')
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Fluence_hist")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Fluence_hist")
 
 # Luminosity histogram 
 lum_hist, bin_edges = np.histogram(fluences_all/10**3)
@@ -100,31 +99,33 @@ plt.figure()
 plt.hist(luminosities_all, bins='auto')
 plt.ylabel('Number of Pulses')
 plt.xlabel('Luminosity (ergs/s/Hz)')
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Luminosity_hist")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/Luminosity_hist")
 
 
 
-pdb.set_trace()
 
 ## HA vs Flux (with errors) ##
 
 #Combined error
 plt.figure()
+plt.ylabel("Flux Density (kJy)")
+plt.xlabel("HA (deg away from meridian)")
 plt.scatter(ha_all, scaled_flux_all/10**3, s=15)
 plt.errorbar(ha_all, scaled_flux_all/10**3, yerr=combined_error/1000, capsize=2, ls='none')
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/combined_error_HA_vs_flux")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/combined_error_HA_vs_flux")
+
 
 #Systematic error only
 plt.figure()
 plt.scatter(ha_all, scaled_flux_all/10**3, s=15)
 plt.errorbar(ha_all, scaled_flux_all/10**3, yerr=sys_errors/1000, capsize=2, ls='none', label='Random error')
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/sys_error_HA_vs_flux")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/sys_error_HA_vs_flux")
 
 #Random error only
 plt.figure()
 plt.scatter(ha_all, scaled_flux_all/10**3, s=15)
 plt.errorbar(ha_all, scaled_flux_all/10**3, yerr=random_errors/1000, capsize=2, ls='none', label='Random error')
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/ran_error_HA_vs_flux")
+#plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/ran_error_HA_vs_flux")
 pdb.set_trace()
 
 
@@ -133,10 +134,12 @@ HAs = np.arange(2, 19)
 fluxes = np.array([52096.68325609861, 52270.06567006741, 51792.12609320032, 51595.514901003204, 51832.69808801434, 51585.64186349405, 52115.78416289081, 51762.51520175683, 51883.451171568246, 51672.30440841518, 51842.395816000804, 51556.188084447815, 51928.3719295107, 51457.57744949451, 51859.135244271296, 51721.598602621816, 51918.34978317152])
 
 plt.figure()
-plt.scatter(HAs, fluxes/10**3)
+plt.scatter(HAs, fluxes/10**3, color='gray')
 plt.scatter(x=1, y=53418.59567092105/1000, color='r', label="HA of observation=-79.6")
 plt.scatter(x=12, y=51842.395816000804/1000, color='b', label="Averaged over 1 degree")
 plt.ylabel("Flux Density(kJy)")
 plt.xlabel("no. of HAs averaged over")
 plt.legend()
 plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/averaging_HAs_vs_flux")
+
+pdb.set_trace()
