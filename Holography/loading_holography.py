@@ -16,10 +16,16 @@ For one frequency, creates .npz file with response for XX pol, YY pol, and inten
 Submit this in CEDAR for every frequency using submit_holo_script.sh
 
 '''
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("f_want", type=float, default=None, help="frequency to extract (in MHz)")
+parser.add_argument("--f_index", type=int, default=None, help="Index of frequency to extract")
+parser.add_argument("--fn", type=str, default=None, help="Filename of holography data")
+args = parser.parse_args()
 
 
 # Load in the data file
-filename = "/project/rpp-chime/areda26/stuff_for_other_people/hsiu-hsien/TauA_105/2667/TAU_A_2667_20181014T120212.h5"
+filename = args.fn
 f = h5py.File(filename, "r")
 beam_dset = f["beam"] 
 index_map = f['index_map']
@@ -34,21 +40,30 @@ n_time = len(ha)
 # Frequency index
 freq = index_map['freq'][:]
 
+if args.f_want is None:
+    fsel = args.f_index
+else:
+    fsel = np.argmin(np.abs(freq - args.f_want))
 
-f_want = int(sys.argv[1])    #Index of the frequency we want to do the notebook for
-
+fsel = np.array([fsel])
 # Indices of frequencies of interest
-fsel = np.arange(f_want,f_want+1)
-n_freq = len(fsel)
+n_freq = 1
 # Extract beam data set
 beam_dset = f['beam'] # (freq, pol, feed, time)
 
 beam = beam_dset[fsel]
 weight_dset = f['weight']
 weight = weight_dset[fsel]
-
 # Normalize beams to 1 at zero hour angle
 beam = beam * tools.invert_no_zero(beam[:,:,:,zha][:,:,:,np.newaxis])
+plt.figure()
+beam_plot = np.abs(beam[0,0])
+plt.imshow(np.log10(beam_plot), aspect='auto', extent=[ha[0], ha[-1], 0, beam_plot.shape[0]])
+plt.colorbar(label='Normalized Beam Response')
+plt.xlabel('Hour Angle (Degrees)')
+plt.ylabel('Feed Index')
+plt.show()
+
 
 
 ###########
@@ -80,10 +95,9 @@ cyl_seps = ["1", "2", "3"]
 
 
 
-tel_pickle_path = "/project/rpp-chime/areda26/stuff_for_other_people/meena/tel.pickle"
+tel_pickle_path = "./tel.pickle"
 with open(tel_pickle_path, "rb") as tel_f:
     tel = pickle.load(tel_f)
-
 
 def process(beam, weight):
 
@@ -171,5 +185,15 @@ out_shape = out.shape # axes are: frequency, Y/X pol, copol-copol/copol-cross/cr
 
 out_yy = np.squeeze(np.abs(out[:, 0, 0]))
 out_xx = np.squeeze(np.abs(out[:, 1, 0]))
-
+plt.figure()
+plt.plot(ha, out_yy, label='YY')
+plt.plot(ha, out_xx, label='XX')
+plt.xlabel('Hour Angle (Degrees)')
+plt.ylabel('Normalized Beam Response')
+plt.title(f'Frequency: {freq[fsel][0]} MHz')
+#set to log scale
+plt.yscale('log')
+plt.legend()
+plt.show()
+import pdb; pdb.set_trace()
 np.savez(f'{freq[fsel][0]}.npz', HA=ha, YY=out_yy, XX=out_xx)

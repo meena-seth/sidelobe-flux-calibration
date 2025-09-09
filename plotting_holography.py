@@ -28,7 +28,6 @@ freqs = [float(fn[:-4]) for fn in fns]
 sort_indices = np.argsort(freqs)
 freqs = np.array(freqs)[sort_indices]
 npz_files = np.array(npz_files)[sort_indices]
-
 #sort the npz files by frequency index
 has = []
 for file in npz_files:
@@ -44,7 +43,6 @@ xx = np.vstack(xx_list)   #[1024, 2160] [freq, HA]
 yy = np.vstack(yy_list)   #[1024, 2160] [freq, HA]
 
 # Normalizing & calculating intensity
-import pdb; pdb.set_trace()
 xx_masked =  xx[:,1040:1120]
 xx_max = np.max(xx_masked)
 xx_norm = xx / xx_max
@@ -58,9 +56,8 @@ intensity_masked = intensity[:,1760:1840]
 intensity_max = np.max(intensity_masked)
 intensity_norm = intensity / intensity_max  #[1024, 2160] [freq, HA]
 
-
-#Saving 
-np.savez("Normalized_holography_data", xx_norm=xx_norm, yy_norm=yy_norm, intensity_norm=intensity_norm)
+#Saving
+np.savez("Normalized_holography_data", xx_norm=xx_norm, yy_norm=yy_norm, intensity_norm=intensity_norm,freqs=freqs, has=has)
 
 #Plotting xx and yy 
 fig, ax = plt.subplot_mosaic(
