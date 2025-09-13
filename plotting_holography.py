@@ -7,13 +7,26 @@ freqs = np.linspace(400.390625, 800, 1024) #1024 frequencies
 has = np.linspace(-105, 104.90278, 2160)   #2160 HAs in holography 
 
 ## LOADING IN DATA 
-path_to_holography = '/arc/projects/chime_frb/mseth/Normalized_holography_data.npz'
+path_to_holography = '/arc/projects/chime_frb/mseth/Sorted_Normalized_holography_data.npz'
 
 holography = np.load(path_to_holography, allow_pickle=True)
 
+intensity_norm = holography['intensity_norm']
+yy_norm = holography['yy_norm']
 
+plt.subplots(figsize=(13, 4))
+plt.plot(has, intensity_norm[809])
+plt.yscale('log')
+plt.xlabel('HA (deg)')
+plt.ylabel('Normalized sensitivity')
+plt.title('Intensity, 716.41 MHz')
+plt.savefig('/arc/projects/chime_frb/mseth/plots/holography_example.pdf')
+
+pdb.set_trace()
 ## PLOTTING 
 # 
+
+
 
 
 #Plotting xx and yy 
@@ -57,5 +70,5 @@ ax['A'].set_xlabel('HA')
 ax['A'].set_title('Intensity')
 
 fig.colorbar(pcm, ax=ax['A'])
-plt.savefig("
+#plt.savefig("
 
