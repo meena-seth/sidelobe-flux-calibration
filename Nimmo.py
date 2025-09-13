@@ -60,7 +60,6 @@ sys_lumerrors[sys_lumerrors==0]=np.max(sys_lumerrors)
 ran_lumerrors = np.array([file['lowerran_lumerror'], file['upperran_lumerror']])
 combined_lumerror = np.sqrt(np.square(sys_lumerrors) + np.square(ran_lumerrors))
 
-
 sys_lumerror2 = np.array([file['lowersys_lumerror'][ha<=-90], file['uppersys_lumerror'][ha<=-90]])
 sys_lumerror2[sys_lumerror2==0]=np.max(sys_lumerrors)
 ran_lumerror2 = np.array([file['lowerran_lumerror'][ha<=-90], file['upperran_lumerror'][ha<=-90]])
@@ -72,6 +71,7 @@ data_x = width_file['Nimmo_x']
 data_x2 = data_x[ha<=-90]
 luminosity2 = luminosity[ha<=-90]
 
+pdb.set_trace()
 plt.errorbar(data_x, luminosity/10**20, yerr=combined_lumerror/10**20, ls='none', color='blueviolet', capsize=3, elinewidth=0.8, alpha=0.5)
 plt.errorbar(data_x2, luminosity2/10**20, yerr=combined_lumerror2/10**20, ls='none', color='indigo', capsize=3, elinewidth=0.8, alpha=0.7)
 
