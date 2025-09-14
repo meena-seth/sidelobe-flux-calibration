@@ -11,6 +11,10 @@ from matplotlib.ticker import FixedLocator
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from matplotlib.patches import Rectangle
 
+def flux_to_luminosity(peak_flux): #ONLY FOR CRAB 
+    result = 4 * np.pi * np.square(6.788 * 10**19) * peak_flux * 10**(-19)
+    return result 
+
 mpl.rcParams['font.size'] = 7
 mpl.rcParams['font.family'] = 'sans-serif'
 mpl.rcParams['axes.linewidth'] = 1
@@ -52,6 +56,11 @@ plt.text(1.5e-6,1e-4,r'$10^{24}$ K',rotation=30,color='k',alpha=0.3)
 # MY DATA
 file = np.load('/arc/projects/chime_frb/mseth/error_rfi_corrected_calibration.npz', allow_pickle=True)
 luminosity = file['peak_luminosity']
+
+scaled_fluxes = file['scaled_fluxes']
+luminosities = flux_to_luminosity(scaled_fluxes)
+
+
 ha = file['has']
 
 
@@ -71,12 +80,15 @@ data_x = width_file['Nimmo_x']
 data_x2 = data_x[ha<=-90]
 luminosity2 = luminosity[ha<=-90]
 
-pdb.set_trace()
-plt.errorbar(data_x, luminosity/10**20, yerr=combined_lumerror/10**20, ls='none', color='blueviolet', capsize=3, elinewidth=0.8, alpha=0.5)
-plt.errorbar(data_x2, luminosity2/10**20, yerr=combined_lumerror2/10**20, ls='none', color='indigo', capsize=3, elinewidth=0.8, alpha=0.7)
+factor = 1e20/(4*np.pi)
 
-plt.scatter(data_x,luminosity/10**20,alpha=0.5,color='blueviolet',marker='x')
-plt.scatter(data_x[ha<=-90], luminosity[ha<=-90]/10**20, alpha=0.8,color='indigo',marker='x')
+#plt.errorbar(data_x, luminosity/factor, yerr=combined_lumerror/factor, ls='none', color='blueviolet', capsize=3, elinewidth=0.8, alpha=0.5)
+#plt.errorbar(data_x2, luminosity2/factor, yerr=combined_lumerror2/factor, ls='none', color='indigo', capsize=3, elinewidth=0.8, alpha=0.7)
+
+plt.scatter(data_x, luminosities/factor, alpha=0.5, color='blueviolet', marker='+')
+
+#plt.scatter(data_x,luminosity/factor,alpha=0.5,color='blueviolet',marker='x')
+#plt.scatter(data_x[ha<=-90], luminosity[ha<=-90]/factor, alpha=0.8,color='indigo',marker='x')
 plt.text(1e-4,1e4,'This work',color='blueviolet')
 #plt.fill_between([np.min(sgrx),np.max(sgrx)],[np.min(sgry),np.min(sgry)],[np.max(sgry),np.max(sgry)],alpha=0.7,color='pink')
 
@@ -93,6 +105,7 @@ for n in range(len(sgr)):
 plt.scatter(sgrx,sgry,alpha=0.8,color='darkred',marker='x')
 plt.text(5e-3,1e5,'SGR 1935+2154',color='darkred')
 #plt.fill_between([np.min(sgrx),np.max(sgrx)],[np.min(sgry),np.min(sgry)],[np.max(sgry),np.max(sgry)],alpha=0.7,color='pink')
+
 
 
 # Pulsars general (psrcat)
@@ -141,6 +154,8 @@ plt.text(5e-6,1e0,'Crab GRPs',color='coral')
 cnano=np.loadtxt('/arc/projects/chime_frb/mseth/plots/data_from_nimmo/crab_nano.txt')
 for n in range(len(cnano)):
     plt.scatter(cnano[n][0],cnano[n][1],color='orange',marker='+')
+    
+plt.scatter(cnano[2][0], cnano[2][1], color='r', marker='+')
 plt.text(2e-9,1e2,'Crab nanoshots',color='orange')
 
 # The other nano-shots
@@ -241,4 +256,5 @@ ax.set_yticklabels([r'$10^{16}$',r'$10^{19}$',r'$10^{22}$',r'$10^{25}$',r'$10^{2
 
 
 
-plt.savefig('/arc/projects/chime_frb/mseth/plots/nimmo.pdf',format='pdf',dpi=300)
+plt.savefig('/arc/projects/chime_frb/mseth/plots/test_nimmo.pdf',format='pdf',dpi=300)
+pdb.set_trace()

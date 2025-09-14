@@ -53,7 +53,7 @@ def bf_to_jy(bf_spectrum, f_good):
 
 def flux_to_luminosity(peak_flux):
     #result = 4 * np.pi * np.square(6.171 * 10**19) * peak_flux * 10**(-19)
-    result = 4 * np.pi * np.square(3 * 10**20) * peak_flux * 10**(-19)
+    result = 4 * np.pi * np.square(6.788 * 10**19) * peak_flux * 10**(-19)
     return result 
 
 def normalise(spectrum):
