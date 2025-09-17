@@ -91,6 +91,7 @@ if __name__ == "__main__":
     parser.add_argument('--holo_file', type=str, required=True, help='Path to the holography data file')
     parser.add_argument('-ra', type=str, required=True, help='RA of the source in HH:MM:SS or decimal degrees')
     parser.add_argument('-dec', type=str, required=True, help='Dec of the source in DD:MM:SS or decimal degrees')
+    parser.add_argument('-f', '--force', action='store_true', help='Force recalibration even if output file exists')
     args = parser.parse_args()
     # Load in beam response
     holography_data = np.load(args.holo_file)
@@ -98,7 +99,7 @@ if __name__ == "__main__":
     for no_rescale_cascade in intenisty_files:
         cascade_data = cascade.load_cascade_from_file(no_rescale_cascade)
         flux_calibrated_cascade = no_rescale_cascade.replace('.npz','_flux_calibrated.pkl')
-        if os.path.exists(flux_calibrated_cascade):
+        if os.path.exists(flux_calibrated_cascade) and not args.force:
             #try to load it
             try:
                 with open(flux_calibrated_cascade, 'rb') as f:
@@ -122,12 +123,6 @@ if __name__ == "__main__":
         cascade_data.beams[0].intensity, mask = mask_bad_freq(cascade_data.beams[0].intensity)
         cascade_data.beams[0].intensity[np.isnan(cascade_data.beams[0].intensity)] = np.nanmedian(cascade_data.beams[0].intensity)
         #plot the timeseries
-
-        #first lets make sure the data is actually there
-        cascade_copy = copy.deepcopy(cascade_data)
-        cascade_copy.beams[0].intensity = normalise(cascade_copy.beams[0].intensity)
-        #downsample the cascade_copy
-        cascade_copy.process_cascade(dm=cascade_copy.dm[0], nsub=1024, dedisperse=False, downsample=1)
 
         intensity_norm = holography_data['intensity_norm']
         freqs = holography_data['freqs']
@@ -166,8 +161,17 @@ if __name__ == "__main__":
         spectra_median = np.nanmedian(spectra)
         spectra_iqr = np.quantile(spectra, 0.75) - np.quantile(spectra, 0.25)
         bad_channels = np.abs(spectra-spectra_median) > 3 * spectra_iqr
+        #also just lob off the upper quarter of the band
+        bad_channels |= np.arange(len(spectra)) > (0.75 * len(spectra))
         spectra[bad_channels] = np.nan
+
         cascade_data.beams[0].intensity[bad_channels,:] = np.nan
+        #first lets make sure the data is actually there
+        cascade_copy = copy.deepcopy(cascade_data)
+        cascade_copy.beams[0].intensity[bad_channels,:] = np.nan
+        cascade_copy.beams[0].intensity = normalise(cascade_copy.beams[0].intensity)
+        #downsample the cascade_copy
+        cascade_copy.process_cascade(dm=cascade_copy.dm[0], nsub=1024, dedisperse=False, downsample=1)
         cascade_data.beams[0].intensity -= np.nanmean(cascade_data.beams[0].intensity, axis=1)[:,np.newaxis]
 
         ts = np.nanmean(cascade_data.beams[0].intensity, axis=0)
