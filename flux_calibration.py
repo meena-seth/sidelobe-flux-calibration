@@ -5,7 +5,8 @@ import matplotlib
 matplotlib.use('TkAgg')
 import copy
 from numba import njit, prange, boolean
-
+import os
+import pickle
 from astropy.time import Time
 def normalise(spectrum):
     spectrum -=np.nanmedian(spectrum,axis=1)[:,np.newaxis]
@@ -96,6 +97,16 @@ if __name__ == "__main__":
     intenisty_files = args.intensity_files
     for no_rescale_cascade in intenisty_files:
         cascade_data = cascade.load_cascade_from_file(no_rescale_cascade)
+        flux_calibrated_cascade = no_rescale_cascade.replace('.npz','_flux_calibrated.pkl')
+        if os.path.exists(flux_calibrated_cascade):
+            #try to load it
+            try:
+                with open(flux_calibrated_cascade, 'rb') as f:
+                    cascade_data = pickle.load(f)
+                print(f"Flux calibrated file already exists and is loadable: {flux_calibrated_cascade}, skipping")
+                continue
+            except:
+                print(f"Flux calibrated file already exists but is not loadable: {flux_calibrated_cascade}, recalibrating")
         from astropy.coordinates import SkyCoord
         try:
             source_ra = float(args.ra)
@@ -142,8 +153,7 @@ if __name__ == "__main__":
         cascade_data = bf_holo_correction(cascade_data, has, freqs, intensity_norm, ha_deg)
         cascade_data.beams[0].intensity = bf_to_jy(cascade_data.beams[0].intensity, 1)
         #dump the calibrated spectrum
-        import pickle
-        with open(no_rescale_cascade.replace('.npz','_calibrated.pkl'), 'wb') as f:
+        with open(flux_calibrated_cascade, 'wb') as f:
             #NOTE: we are not correcting for the geometric factor here!!
             pickle.dump(cascade_data, f)
 
