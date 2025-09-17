@@ -133,6 +133,9 @@ if __name__ == "__main__":
         freqs = holography_data['freqs']
         has = holography_data['has']
         event_time, event_time_mjd, width = get_cascade_time(no_rescale_cascade)
+        #if the time is 1970s then skip
+        if event_time.year < 2000:
+            continue
 
         #precess coord to epoch of observation
         print(f"Event time: {event_time} MJD: {event_time_mjd}")
