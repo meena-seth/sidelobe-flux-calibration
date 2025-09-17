@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from iautils import cascade
 import matplotlib
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 import copy
 from numba import njit, prange, boolean
 import os
