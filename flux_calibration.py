@@ -87,7 +87,7 @@ def get_cascade_time(cascade):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Flux Calibration Script")
-    parser.add_argument('intensity_files', nargs='+', type=str, required=True, help='Path to the intensity data file(s)')
+    parser.add_argument('intensity_files', nargs='+', type=str, help='Path to the intensity data file(s)')
     parser.add_argument('--holo_file', type=str, required=True, help='Path to the holography data file')
     parser.add_argument('-ra', type=str, required=True, help='RA of the source in HH:MM:SS or decimal degrees')
     parser.add_argument('-dec', type=str, required=True, help='Dec of the source in DD:MM:SS or decimal degrees')
