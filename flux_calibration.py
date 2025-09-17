@@ -164,7 +164,6 @@ if __name__ == "__main__":
         spectra_iqr = np.quantile(spectra, 0.75) - np.quantile(spectra, 0.25)
         bad_channels = np.abs(spectra-spectra_median) > 3 * spectra_iqr
         spectra[bad_channels] = np.nan
-        import pdb; pdb.set_trace()
         cascade_data.beams[0].intensity[bad_channels,:] = np.nan
         cascade_data.beams[0].intensity -= np.nanmean(cascade_data.beams[0].intensity, axis=1)[:,np.newaxis]
 
