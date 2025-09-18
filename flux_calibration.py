@@ -35,10 +35,10 @@ def bf_holo_correction(cascade_file, holo_has, holo_freqs, holo_spectrum, ha):
     return cascade_file
 
 
-@njit(parallel=True)
+# @njit(parallel=True)
 def mask_bad_freq_nowindow(intensity,thresh=2):
-    mask_freq = np.zeros((intensity.shape[0]), dtype=boolean)
-    # mask_freq = np.zeros((intensity.shape[0],5), dtype=bool)
+    # mask_freq = np.zeros((intensity.shape[0]), dtype=boolean)
+    mask_freq = np.zeros((intensity.shape[0]), dtype=bool)
     #do a moving window median filter to smooth out the freq axis
     window=intensity
     iqr_val_freq = np.quantile(window[~np.isnan(window)], 0.75) - np.quantile(window[~np.isnan(window)], 0.25)
@@ -173,6 +173,7 @@ if __name__ == "__main__":
 
         #subtract median from each channel
         spectra = np.nanmean(cascade_data.beams[0].intensity, axis=1)
+        holo = cascade_data.beams[0].holo_correction
         #cut out the very noisy channels (i.e. very insensitive channels)
         spectra_median = np.nanmedian(spectra)
         spectra_iqr = np.quantile(spectra, 0.75) - np.quantile(spectra, 0.25)
@@ -190,6 +191,7 @@ if __name__ == "__main__":
         cascade_copy.process_cascade(dm=cascade_copy.dm[0], nsub=1024, dedisperse=False, downsample=1)
         cascade_data.beams[0].intensity -= np.nanmean(cascade_data.beams[0].intensity, axis=1)[:,np.newaxis]
 
+
         ts = np.nanmean(cascade_data.beams[0].intensity, axis=0)
         #collapse intensity_norm to a ha series
         holo_ha = np.nanmean(intensity_norm, axis=0)
@@ -202,9 +204,11 @@ if __name__ == "__main__":
         ax[1,0].plot(np.arange(len(ts))*cascade_copy.beams[0].dt, ts*5)
         ax[1,0].set_xlabel('Time (bins)')
         ax[1,0].set_ylabel('Intensity (Jy)')
-        ax[1,1].plot(np.arange(len(spectra))*cascade_copy.beams[0].df + cascade_copy.beams[0].fbottom, np.log10(spectra))
+        ax[1,1].plot(np.arange(len(spectra))*cascade_copy.beams[0].df + cascade_copy.beams[0].fbottom, np.log10(spectra)-np.nanmedian(np.log10(spectra)), alpha=0.5, label='Calibrated')
+        ax[1,1].plot(np.arange(len(spectra))*cascade_copy.beams[0].df + cascade_copy.beams[0].fbottom, np.log10(holo)-np.nanmedian(np.log10(holo)), alpha=0.5, label=f'Holography median = {np.nanmedian(holo):.2f}')
         ax[1,1].set_xlabel('Frequency (MHz)')
         ax[0,1].plot(has, holo_ha)
+        ax[0,1].axvline(ha_deg, color='r', linestyle='--', label='Event HA')
         ax[0,1].set_yscale('log')
         ax[0,1].set_xlabel('Hour Angle (deg)')
         ax[0,1].set_ylabel('Normalized Intensity')
