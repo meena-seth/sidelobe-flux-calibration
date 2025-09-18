@@ -78,6 +78,7 @@ def get_cascade_time(cascade):
     event_time_mjd = start_time_mjd + seconds_from_start_time/86400
     event_time = start_time + timedelta(seconds = seconds_from_start_time)
     if event_time.year < 2000:
+        #instead of returning a None, lets query the L2 header for the time
         print(f"Invalid event time: {cascade} - {event_time}")
         return None, None, None
     print(event_time,metadata['event_time'])
@@ -92,6 +93,7 @@ if __name__ == "__main__":
     parser.add_argument('-ra', type=str, required=True, help='RA of the source in HH:MM:SS or decimal degrees')
     parser.add_argument('-dec', type=str, required=True, help='Dec of the source in DD:MM:SS or decimal degrees')
     parser.add_argument('-f', '--force', action='store_true', help='Force recalibration even if output file exists')
+    parser.add_argument('-l2_header', type=str, default=None, help='Path to the L2 header file (if needed to get time)')
     args = parser.parse_args()
     # Load in beam response
     holography_data = np.load(args.holo_file)
@@ -128,9 +130,19 @@ if __name__ == "__main__":
         freqs = holography_data['freqs']
         has = holography_data['has']
         event_time, event_time_mjd, width = get_cascade_time(no_rescale_cascade)
-        #if the time is 1970s then skip
-        if event_time.year < 2000:
-            continue
+
+        if event_time is None:
+            l2_header_file = args.l2_header
+            data = np.load(l2_header_file, allow_pickle=True)
+            event_numbers = data[0]
+            events = data[1]
+            event_number = no_rescale_cascade.split('/')[-1].split('_')[1]
+            event_idx = np.where(event_numbers == int(event_number))[0]
+            my_event = events[event_idx[0]]
+            event_time = my_event.timestamp_utc
+            import pdb; pdb.set_trace()
+
+            #try to get it from the l2_header
 
         #precess coord to epoch of observation
         print(f"Event time: {event_time} MJD: {event_time_mjd}")
