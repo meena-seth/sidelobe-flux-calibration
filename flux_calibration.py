@@ -165,6 +165,9 @@ if __name__ == "__main__":
         #convert lst to degrees
         deg_lst = lst.deg
         ha_deg = coord.ra.deg - deg_lst
+        if np.abs(ha_deg) > 180:
+            print("HA out of range, skipping")
+            continue
         print(f"LST: {lst}, HA: {ha_deg}")
         cascade_data = bf_holo_correction(cascade_data, has, freqs, intensity_norm, ha_deg)
         cascade_data.beams[0].intensity = bf_to_jy(cascade_data.beams[0].intensity, 1)
