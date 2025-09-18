@@ -31,6 +31,7 @@ def bf_holo_correction(cascade_file, holo_has, holo_freqs, holo_spectrum, ha):
     holo_correction = holo_spectrum[:,holo_idx]
     holo_correction_interp = np.interp(cascade_freqs, holo_freqs, holo_correction)
     cascade_file.beams[0].intensity /= holo_correction_interp[:,np.newaxis]
+    cascade_file.beams[0].holo_correction = holo_correction_interp
     return cascade_file
 
 
