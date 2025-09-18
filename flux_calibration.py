@@ -119,6 +119,18 @@ if __name__ == "__main__":
             source_ra = coord.ra.deg
             source_dec = coord.dec.deg
         event_time, event_time_mjd, width = get_cascade_time(no_rescale_cascade)
+        if event_time is None:
+            #try to get it from the l2_header
+            l2_header_file = args.l2_header
+            data = np.load(l2_header_file, allow_pickle=True)
+            event_numbers = data[0]
+            events = data[1]
+            event_number = no_rescale_cascade.split('/')[-1].split('_')[1]
+            event_idx = np.where(event_numbers == int(event_number))[0]
+            my_event = events[event_idx[0]]
+            event_time = my_event.timestamp_utc
+
+
         #precess coord to epoch of observation
         print(f"Event time: {event_time} MJD: {event_time_mjd}")
         print(f"Source coord: {coord.ra.deg}, {coord.dec.deg}")
@@ -158,17 +170,6 @@ if __name__ == "__main__":
         intensity_norm = holography_data['intensity_norm']
         freqs = holography_data['freqs']
         has = holography_data['has']
-
-        if event_time is None:
-            #try to get it from the l2_header
-            l2_header_file = args.l2_header
-            data = np.load(l2_header_file, allow_pickle=True)
-            event_numbers = data[0]
-            events = data[1]
-            event_number = no_rescale_cascade.split('/')[-1].split('_')[1]
-            event_idx = np.where(event_numbers == int(event_number))[0]
-            my_event = events[event_idx[0]]
-            event_time = my_event.timestamp_utc
 
 
 
