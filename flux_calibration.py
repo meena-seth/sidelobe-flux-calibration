@@ -105,18 +105,10 @@ if __name__ == "__main__":
         try:
             cascade_data = cascade.load_cascade_from_file(no_rescale_cascade)
         except Exception as e:
+            import sys
             print(f"Error loading cascade file {no_rescale_cascade}: {e}, skipping")
             sys.exit(1)
-        flux_calibrated_cascade = no_rescale_cascade.replace('.npz','_flux_calibrated.pkl')
-        if os.path.exists(flux_calibrated_cascade) and not args.force:
-            #try to load it
-            try:
-                with open(flux_calibrated_cascade, 'rb') as f:
-                    cascade_data = pickle.load(f)
-                print(f"Flux calibrated file already exists and is loadable: {flux_calibrated_cascade}, skipping")
-                continue
-            except:
-                print(f"Flux calibrated file already exists but is not loadable: {flux_calibrated_cascade}, recalibrating")
+
         from astropy.coordinates import SkyCoord
         try:
             source_ra = float(args.ra)
@@ -126,30 +118,7 @@ if __name__ == "__main__":
             coord = SkyCoord(args.ra, args.dec, unit=('hourangle', 'deg'))
             source_ra = coord.ra.deg
             source_dec = coord.dec.deg
-
-
-        #now fill in the nans with the median values
-        cascade_data.beams[0].intensity, mask = mask_bad_freq(cascade_data.beams[0].intensity)
-        cascade_data.beams[0].intensity[np.isnan(cascade_data.beams[0].intensity)] = np.nanmedian(cascade_data.beams[0].intensity)
-        #plot the timeseries
-
-        intensity_norm = holography_data['intensity_norm']
-        freqs = holography_data['freqs']
-        has = holography_data['has']
         event_time, event_time_mjd, width = get_cascade_time(no_rescale_cascade)
-
-        if event_time is None:
-            #try to get it from the l2_header
-            l2_header_file = args.l2_header
-            data = np.load(l2_header_file, allow_pickle=True)
-            event_numbers = data[0]
-            events = data[1]
-            event_number = no_rescale_cascade.split('/')[-1].split('_')[1]
-            event_idx = np.where(event_numbers == int(event_number))[0]
-            my_event = events[event_idx[0]]
-            event_time = my_event.timestamp_utc
-
-
         #precess coord to epoch of observation
         print(f"Event time: {event_time} MJD: {event_time_mjd}")
         print(f"Source coord: {coord.ra.deg}, {coord.dec.deg}")
@@ -168,6 +137,40 @@ if __name__ == "__main__":
         if np.abs(ha_deg) > 180:
             print("HA out of range, skipping")
             continue
+
+        flux_calibrated_cascade = no_rescale_cascade.replace('.npz','_flux_calibrated.pkl')
+        if os.path.exists(flux_calibrated_cascade) and not args.force:
+            #try to load it
+            try:
+                with open(flux_calibrated_cascade, 'rb') as f:
+                    cascade_data = pickle.load(f)
+                print(f"Flux calibrated file already exists and is loadable: {flux_calibrated_cascade}, skipping")
+                continue
+            except:
+                print(f"Flux calibrated file already exists but is not loadable: {flux_calibrated_cascade}, recalibrating")
+
+        #now fill in the nans with the median values
+        cascade_data.beams[0].intensity, mask = mask_bad_freq(cascade_data.beams[0].intensity)
+        cascade_data.beams[0].intensity[np.isnan(cascade_data.beams[0].intensity)] = np.nanmedian(cascade_data.beams[0].intensity)
+        #plot the timeseries
+
+        intensity_norm = holography_data['intensity_norm']
+        freqs = holography_data['freqs']
+        has = holography_data['has']
+
+        if event_time is None:
+            #try to get it from the l2_header
+            l2_header_file = args.l2_header
+            data = np.load(l2_header_file, allow_pickle=True)
+            event_numbers = data[0]
+            events = data[1]
+            event_number = no_rescale_cascade.split('/')[-1].split('_')[1]
+            event_idx = np.where(event_numbers == int(event_number))[0]
+            my_event = events[event_idx[0]]
+            event_time = my_event.timestamp_utc
+
+
+
         print(f"LST: {lst}, HA: {ha_deg}")
         cascade_data = bf_holo_correction(cascade_data, has, freqs, intensity_norm, ha_deg)
         cascade_data.beams[0].intensity = bf_to_jy(cascade_data.beams[0].intensity, 1)
