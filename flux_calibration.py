@@ -23,6 +23,8 @@ def bf_holo_correction(cascade_file, holo_has, holo_freqs, holo_spectrum, ha):
     #interpolate the holo_spectrum to the bf_spectrum freqs
     cascade_freqs = cascade_file.beams[0].fbottom + np.arange(cascade_file.beams[0].nchan) * cascade_file.beams[0].df #MHz
     #make sure holo freqs are increasing
+    #normalise holo spectrum to has 0
+    holo_spectrum /= holo_spectrum[:,np.argmin(np.abs(holo_has))][:,np.newaxis]
     arg_sort = np.argsort(holo_freqs)
     holo_freqs = holo_freqs[arg_sort]
     holo_spectrum = holo_spectrum[arg_sort,:]
