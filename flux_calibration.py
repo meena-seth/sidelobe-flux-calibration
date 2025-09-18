@@ -197,7 +197,7 @@ if __name__ == "__main__":
         ax[1,0].plot(np.arange(len(ts))*cascade_copy.beams[0].dt, ts*5)
         ax[1,0].set_xlabel('Time (bins)')
         ax[1,0].set_ylabel('Intensity (Jy)')
-        ax[1,1].plot(np.arange(len(spectra))*cascade_copy.beams[0].df + cascade_copy.beams[0].fbottom, spectra)
+        ax[1,1].plot(np.arange(len(spectra))*cascade_copy.beams[0].df + cascade_copy.beams[0].fbottom, np.log10(spectra))
         ax[1,1].set_xlabel('Frequency (MHz)')
         ax[0,1].plot(has, holo_ha)
         ax[0,1].set_yscale('log')
