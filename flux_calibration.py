@@ -132,6 +132,7 @@ if __name__ == "__main__":
         event_time, event_time_mjd, width = get_cascade_time(no_rescale_cascade)
 
         if event_time is None:
+            #try to get it from the l2_header
             l2_header_file = args.l2_header
             data = np.load(l2_header_file, allow_pickle=True)
             event_numbers = data[0]
@@ -140,9 +141,7 @@ if __name__ == "__main__":
             event_idx = np.where(event_numbers == int(event_number))[0]
             my_event = events[event_idx[0]]
             event_time = my_event.timestamp_utc
-            import pdb; pdb.set_trace()
 
-            #try to get it from the l2_header
 
         #precess coord to epoch of observation
         print(f"Event time: {event_time} MJD: {event_time_mjd}")
