@@ -99,7 +99,11 @@ if __name__ == "__main__":
     holography_data = np.load(args.holo_file)
     intenisty_files = args.intensity_files
     for no_rescale_cascade in intenisty_files:
-        cascade_data = cascade.load_cascade_from_file(no_rescale_cascade)
+        try:
+            cascade_data = cascade.load_cascade_from_file(no_rescale_cascade)
+        except Exception as e:
+            print(f"Error loading cascade file {no_rescale_cascade}: {e}, skipping")
+            sys.exit(1)
         flux_calibrated_cascade = no_rescale_cascade.replace('.npz','_flux_calibrated.pkl')
         if os.path.exists(flux_calibrated_cascade) and not args.force:
             #try to load it
