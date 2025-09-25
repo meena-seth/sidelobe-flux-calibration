@@ -108,6 +108,7 @@ y_at_peak = []
 mjds =[]
 peak_idxs = []
 
+f'''
 for file in crab_norescaled_filepaths:
     # Get file name and index 
     filename = file.split("/")
@@ -159,6 +160,7 @@ for file in crab_norescaled_filepaths:
 np.savez("/arc/projects/chime_frb/mseth/widths.npz", Nimmo_x=Nimmo_x)
 
 pdb.set_trace()
+'''
 
 for file in crab_norescaled_filepaths:
     # Get file name and index 
