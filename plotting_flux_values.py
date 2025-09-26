@@ -140,12 +140,13 @@ fluxes = np.array([52096.68325609861, 52270.06567006741, 51792.12609320032, 5159
 plt.figure()
 plt.scatter(HAs, fluxes/10**3, color='gray')
 plt.scatter(x=1, y=53418.59567092105/1000, color='r', label="HA of observation=-79.6")
-plt.xticks(tick_positions, tick_labels)
+plt.xticks(tick_positions, tick_labels, fontsize=13)
+plt.yticks(fontsize=13)
 
 #plt.scatter(x=12, #y=51842.395816000804/1000, color='b', label="Averaged over 1 degree")
-plt.ylabel("Flux Density(kJy)")
-plt.xlabel("Degrees averaged over")
-plt.legend()
-plt.savefig("/arc/projects/chime_frb/mseth/plots/averaging_HAs_vs_flux")
+plt.ylabel("Flux Density(kJy)", fontsize=15)
+plt.xlabel("Degrees averaged over", fontsize=15)
+plt.legend(fontsize=15)
+plt.savefig("/arc/projects/chime_frb/mseth/plots/fixed_axes_labels/5_no_has_flux.pdf", bbox_inches='tight')
 
 pdb.set_trace()
