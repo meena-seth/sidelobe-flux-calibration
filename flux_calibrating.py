@@ -69,9 +69,7 @@ def save_image(filename):
         fig.savefig(p, format='pdf') 
     p.close()  
     
-    
-pdb.set_trace()
-    
+        
 #### Load in beam response #####
 
 holography_data = np.load('/arc/projects/chime_frb/mseth/Holography_Data.npz')
@@ -162,7 +160,7 @@ np.savez("/arc/projects/chime_frb/mseth/widths.npz", Nimmo_x=Nimmo_x)
 pdb.set_trace()
 '''
 
-for file in crab_norescaled_filepaths:
+for file in crab_norescaled_filepaths[26:27]:
     # Get file name and index 
     filename = file.split("/")
     mjd = filename[7].split("_")[1].split(".")[0]
@@ -222,7 +220,7 @@ for file in crab_norescaled_filepaths:
                 ''')
         
     ha_idx = np.abs(has_list - ha).argmin()
-    center_has = np.arange(ha_idx - 6, ha_idx + 7)
+    center_has = np.arange(ha_idx-100, ha_idx+101)
     beam_id = int(beam.beam_no)
         
         
@@ -287,19 +285,23 @@ for file in crab_norescaled_filepaths:
         offpulse_ts = np.nanmedian(ts_calibrated[peak_idx-50:peak_idx+50])
         ts_masked = ts_calibrated - offpulse_ts
         
-        flux = np.nanmax(ts_masked) * 5
+        flux = np.nanmax(ts_masked) * 5 / 1000
         
         timeseries.append(ts_masked)
         fluxes.append(flux)
         
+        
     #Plotting center HA used vs. Flux
     plt.figure()
     plt.scatter(has_list[center_has], fluxes)
-    plt.scatter(has_list[center_has[6]], fluxes[6], color='r', label='HA of observation=-79.6')
-    plt.xlabel('Center HA used')
-    plt.ylabel('Flux Density (kJy)')
-    #plt.savefig("/arc/projects/chime_frb/mseth/plots/averaged_holography_calibration/summary_plots/zoomed_centerHA_vs_flux2")
+    plt.scatter(has_list[center_has[100]], fluxes[100], color='r', label='HA of observation=-79.6')
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.xlabel('Center HA used', fontsize=15)
+    plt.ylabel('Flux Density (kJy)', fontsize=15)
+    plt.savefig("/arc/projects/chime_frb/mseth/plots/fixed_axes_labels/6_center_ha_flux.pdf", bbox_inches='tight')
     
+    pdb.set_trace()
     ## CALCULATING STUFF 
     
     # Systematic error
