@@ -34,6 +34,22 @@ for (root, dirs, file) in os.walk(path):
                 crab_rescaled_filepaths.append(os.path.join(root, f)) 
         else:
             continue
+            
+#### Load in files to observations ####
+path = "/arc/projects/chime_frb/adamdong/for_meena/no_dedisperse"
+norescale = 'norescale'
+crab_norescaled_filepaths = []
+crab_rescaled_filepaths = []
+for (root, dirs, file) in os.walk(path):
+    for f in file: 
+        if f.endswith('.npz'):
+            if norescale in f:
+                crab_norescaled_filepaths.append(os.path.join(root, f)) 
+            else:
+                crab_rescaled_filepaths.append(os.path.join(root, f)) 
+        else:
+            continue
+
 
 #### Predefined stuff ####
 
@@ -52,7 +68,6 @@ def bf_to_jy(bf_spectrum, f_good):
     return result
 
 def flux_to_luminosity(peak_flux):
-    #result = 4 * np.pi * np.square(6.171 * 10**19) * peak_flux * 10**(-19)
     result = 4 * np.pi * np.square(6.788 * 10**19) * peak_flux * 10**(-19)
     return result 
 
@@ -87,7 +102,6 @@ fluence_errors = []
 lum_errors = []
 
 Nimmo_x = []
-
 
 event_timestamps = []
 beam_ids = []
@@ -299,14 +313,17 @@ for file in crab_norescaled_filepaths[34:35]:
     # Systematic error
     uppersys_error = np.abs(np.max(fluxes) - actual_flux)
     lowersys_error = np.abs(np.min(fluxes) - actual_flux)
+    
+    if uppersys_error == 0:
+        uppersys_error = 5787.28738202215
+    if lowersys_error == 0:
+        uppersys_error = 5787.28738202215
+        
     # Random error 
     actual_ts = timeseries[6]
     noise_ts = actual_ts[peak_idx-1000:peak_idx+1000]
     random_error = np.nanstd(noise_ts) * 5
-    # Combined error
-    upper_error = np.sqrt(np.square(uppersys_error) + np.square(random_error))
-    lower_error = np.sqrt(np.square(lowersys_error) + np.square(random_error))
-            
+
     # Fluence 
     ind_max = peak_idx+2*cascade_obj.best_width
     ind_min = peak_idx-2*cascade_obj.best_width
@@ -333,7 +350,7 @@ for file in crab_norescaled_filepaths[34:35]:
     upperran_luminosity = flux_to_luminosity(actual_flux + random_error)
     lowerran_luminosity = flux_to_luminosity(actual_flux - random_error)
     
-    upper_lum_error = np.sqrt(np.square(uppersys_luminosity - peak_luminosity) + np.square(upperran_luminosity - peak_luminosity)
+    upper_lum_error = np.sqrt(np.square(uppersys_luminosity - peak_luminosity) + np.square(upperran_luminosity - peak_luminosity))
     lower_lum_error = np.sqrt(np.square(peak_luminosity - lowersys_luminosity) + np.square(peak_luminosity - lowerran_luminosity))
     
     pdb.set_trace()
@@ -343,9 +360,8 @@ for file in crab_norescaled_filepaths[34:35]:
     scaled_fluxes.append(actual_flux)
     peak_luminosities.append(peak_luminosity)
     
-    flux_errors.append([lower_error, upper_error])
-    fluence_errors.append([lower_flu_error, upper_flu_error])
-    lum_errors.append([lower_lum_error, upper_lum_error])
+    sys_errors.append([lowersys_error, uppersys_error])
+    ran_errors.append([lowerran_error, upperran_error])
     
     event_timestamps.append(event_timestamp)
     has.append(ha)
@@ -367,6 +383,14 @@ for file in crab_norescaled_filepaths[34:35]:
     del timeseries
     del fluxes
     continue 
-    
+                              
+# Now that we have all the errors for the flux, we can calculate the combined errors for flux, fluence, and luminosity. Need to wait until after the loop to find all systematic errors so we can get maximum, and apply that to the observations for which systematic error is 0 (since they use 80-90 averaged holography)
+                              
+sys_errors[sys_errors==0] = np.max(sys_errors)
+
+flux_combined_error = np.sqrt(np.square(sys_errors) + np.square(random_errors))   
+
+#Fluence error 
+
 
 np.savez("/arc/projects/chime_frb/mseth/error_rfi_corrected_calibration.npz", mjds=mjds, has=has, event_timestamps=event_timestamps, peak_idxs=peak_idxs, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences, flux_errors=flux_errors, fluence_errors=fluence_errors, lum_errors=lum_errors)
