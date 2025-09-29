@@ -82,19 +82,9 @@ peak_luminosities = []
 peakfreq_fluxes = []
 peakfreq_luminosities = []
 
-uppersys_errors = []
-lowersys_errors = []
-random_errors = []
-
-uppersys_lumerror = []
-lowersys_lumerror = []
-upperran_lumerror = []
-lowerran_lumerror = []
-    
-uppersys_fluences = []
-lowersys_fluences = []
-upperran_fluences = []
-lowerran_fluences = []
+flux_errors = []
+fluence_errors = []
+lum_errors = []
 
 Nimmo_x = []
 
@@ -160,7 +150,7 @@ np.savez("/arc/projects/chime_frb/mseth/widths.npz", Nimmo_x=Nimmo_x)
 pdb.set_trace()
 '''
 
-for file in crab_norescaled_filepaths[26:27]:
+for file in crab_norescaled_filepaths[34:35]:
     # Get file name and index 
     filename = file.split("/")
     mjd = filename[7].split("_")[1].split(".")[0]
@@ -220,7 +210,7 @@ for file in crab_norescaled_filepaths[26:27]:
                 ''')
         
     ha_idx = np.abs(has_list - ha).argmin()
-    center_has = np.arange(ha_idx-100, ha_idx+101)
+    center_has = np.arange(ha_idx-6, ha_idx+7)
     beam_id = int(beam.beam_no)
         
         
@@ -232,6 +222,7 @@ for file in crab_norescaled_filepaths[26:27]:
     for center_ha in center_has:
         masked_beams = []
         
+        # AVERAGING HOLOGRAPHY
         if ha > 90 or ha < -90:
             #Average holography between 80-90 degrees
             ha_idxs =  np.arange(1900, 2000) 
@@ -276,6 +267,7 @@ for file in crab_norescaled_filepaths[26:27]:
     
         stack = np.vstack(masked_beams)
         averaged_beam = np.nanmean(stack, axis=0)
+        
         ### CORRECTING ###
         ds_corrected = ds_masked[0:512] / averaged_beam[:, np.newaxis] 
         ds_calibrated = bf_to_jy(ds_corrected, 1)
@@ -285,7 +277,7 @@ for file in crab_norescaled_filepaths[26:27]:
         offpulse_ts = np.nanmedian(ts_calibrated[peak_idx-50:peak_idx+50])
         ts_masked = ts_calibrated - offpulse_ts
         
-        flux = np.nanmax(ts_masked) * 5 / 1000
+        flux = np.nanmax(ts_masked) * 5 
         
         timeseries.append(ts_masked)
         fluxes.append(flux)
@@ -294,67 +286,66 @@ for file in crab_norescaled_filepaths[26:27]:
     #Plotting center HA used vs. Flux
     plt.figure()
     plt.scatter(has_list[center_has], fluxes)
-    plt.scatter(has_list[center_has[100]], fluxes[100], color='r', label='HA of observation=-79.6')
+    plt.scatter(has_list[center_has[6]], fluxes[6], color='r', label='HA of observation=-79.6')
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
     plt.xlabel('Center HA used', fontsize=15)
     plt.ylabel('Flux Density (kJy)', fontsize=15)
-    plt.savefig("/arc/projects/chime_frb/mseth/plots/fixed_axes_labels/6_center_ha_flux.pdf", bbox_inches='tight')
+    #plt.savefig("/arc/projects/chime_frb/mseth/plots/fixed_axes_labels/6_center_ha_flux.pdf", bbox_inches='tight')
     
-    pdb.set_trace()
     ## CALCULATING STUFF 
+    actual_flux = fluxes[6]
     
     # Systematic error
-    actual_flux = fluxes[6]
     uppersys_error = np.abs(np.max(fluxes) - actual_flux)
-    lowersys_error = np.abs(np.max(fluxes - actual_flux))
+    lowersys_error = np.abs(np.min(fluxes) - actual_flux)
     # Random error 
     actual_ts = timeseries[6]
     noise_ts = actual_ts[peak_idx-1000:peak_idx+1000]
     random_error = np.nanstd(noise_ts) * 5
+    # Combined error
+    upper_error = np.sqrt(np.square(uppersys_error) + np.square(random_error))
+    lower_error = np.sqrt(np.square(lowersys_error) + np.square(random_error))
             
-    # Fluence & luminosity 
+    # Fluence 
     ind_max = peak_idx+2*cascade_obj.best_width
     ind_min = peak_idx-2*cascade_obj.best_width
     
     integral = np.trapz(actual_ts[ind_min:ind_max])
-
-    uppersys_integral = np.trapz(actual_ts[ind_min:ind_max] + uppersys_error)
-    lowersys_integral = np.trapz(actual_ts[ind_min:ind_max] - lowersys_error)
-    upperran_integral = np.trapz(actual_ts[ind_min:ind_max] + random_error/5)
-    lowerran_integral = np.trapz(actual_ts[ind_min:ind_max] - random_error/5)
+    factor =  0.9830400000000001 / 1000  * 5 # Jy-s
     
-    fluence = integral * 0.9830400000000001 / 1000  * 5 #Jy-s
-    uppersys_fluence = uppersys_integral * 0.9830400000000001 /1000  * 5
-    lowersys_fluence = lowersys_integral * 0.9830400000000001 /1000  * 5
-    upperran_fluence = upperran_integral * 0.9830400000000001 /1000  * 5
-    lowerran_fluence = lowerran_integral * 0.9830400000000001 /1000  * 5
-                            
-    peak_luminosity = flux_to_luminosity(flux)
-    uppersys_luminosity = flux_to_luminosity(flux + uppersys_error)
-    lowersys_luminosity = flux_to_luminosity(flux - lowersys_error)
+    fluence = integral * factor #Jy-s
     
-    upperran_luminosity = flux_to_luminosity(flux + random_error)
-    lowerran_luminosity = flux_to_luminosity(flux - random_error)
+    uppersys_fluence = np.trapz(actual_ts[ind_min:ind_max] + uppersys_error) * factor
+    lowersys_fluence = np.trapz(actual_ts[ind_min:ind_max] - lowersys_error) * factor
+    upperran_fluence = np.trapz(actual_ts[ind_min:ind_max] + random_error/5) * factor
+    lowerran_fluence = np.trapz(actual_ts[ind_min:ind_max] - random_error/5) * factor
+    
+    upper_flu_error = np.sqrt(np.square(uppersys_fluence - fluence) + np.square(upperran_fluence - fluence))
+    lower_flu_error = np.sqrt(np.square(fluence - lowersys_fluence) + np.square(fluence - lowerran_fluence))
+    
+    #Luminosity
+    peak_luminosity = flux_to_luminosity(actual_flux)
+    
+    uppersys_luminosity = flux_to_luminosity(actual_flux + uppersys_error)
+    lowersys_luminosity = flux_to_luminosity(actual_flux - lowersys_error)
+    
+    upperran_luminosity = flux_to_luminosity(actual_flux + random_error)
+    lowerran_luminosity = flux_to_luminosity(actual_flux - random_error)
+    
+    upper_lum_error = np.sqrt(np.square(uppersys_luminosity - peak_luminosity) + np.square(upperran_luminosity - peak_luminosity)
+    lower_lum_error = np.sqrt(np.square(peak_luminosity - lowersys_luminosity) + np.square(peak_luminosity - lowerran_luminosity))
+    
+    pdb.set_trace()
     
     ## SAVING 
     fluences.append(fluence)
     scaled_fluxes.append(actual_flux)
     peak_luminosities.append(peak_luminosity)
     
-    uppersys_errors.append(uppersys_error)
-    lowersys_errors.append(lowersys_error)
-    random_errors.append(random_error)
-    
-    uppersys_lumerror.append(uppersys_luminosity - peak_luminosity)
-    lowersys_lumerror.append(peak_luminosity - lowersys_luminosity)
-    upperran_lumerror.append(upperran_luminosity - peak_luminosity)
-    lowerran_lumerror.append(peak_luminosity - lowerran_luminosity)
-    
-    uppersys_fluences.append(uppersys_fluence)
-    lowersys_fluences.append(lowersys_fluence)
-    upperran_fluences.append(upperran_fluence)
-    lowerran_fluences.append(lowerran_fluence)
+    flux_errors.append([lower_error, upper_error])
+    fluence_errors.append([lower_flu_error, upper_flu_error])
+    lum_errors.append([lower_lum_error, upper_lum_error])
     
     event_timestamps.append(event_timestamp)
     has.append(ha)
@@ -365,11 +356,6 @@ for file in crab_norescaled_filepaths[26:27]:
     print(f'''
     Observation: {i}_{mjd}
     Flux = {flux}
-    
-    Upper system error = {uppersys_error}
-    Lower system error = {lowersys_error}
-    Random error = {random_error}
-    
     Fluence = {fluence}
     Luminosity = {peak_luminosity}
     ''')
@@ -383,4 +369,4 @@ for file in crab_norescaled_filepaths[26:27]:
     continue 
     
 
-np.savez("/arc/projects/chime_frb/mseth/error_rfi_corrected_calibration.npz", mjds=mjds, has=has, event_timestamps=event_timestamps, peak_idxs=peak_idxs, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences, uppersys_errors=uppersys_errors, lowersys_errors=lowersys_errors, random_errors=random_errors, uppersys_lumerror=uppersys_lumerror, lowersys_lumerror=lowersys_lumerror, upperran_lumerror=upperran_lumerror, lowerran_lumerror=lowerran_lumerror, uppersys_fluences=uppersys_fluences, lowersys_fluences=lowersys_fluences, upperran_fluences=upperran_fluences, lowerran_fluences=lowerran_fluences)
+np.savez("/arc/projects/chime_frb/mseth/error_rfi_corrected_calibration.npz", mjds=mjds, has=has, event_timestamps=event_timestamps, peak_idxs=peak_idxs, scaled_fluxes=scaled_fluxes, peak_luminosity=peak_luminosities, fluence=fluences, flux_errors=flux_errors, fluence_errors=fluence_errors, lum_errors=lum_errors)
