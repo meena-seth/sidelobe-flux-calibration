@@ -11,9 +11,15 @@ from uncertainties import ufloat
 from uncertainties import unumpy as unp
 import re
 from glob import glob
+from astropy.coordinates import SkyCoord
+from astropy.coordinates import EarthLocation
+from astropy.time import Time
+from astropy.coordinates import FK5, ICRS
+import my_utils
+from my_utils import load_cascade_any, flux_to_luminosity
 
-sys.path.append("/home/mseth2/scratch/sidelobe-flux-calibration")
-from utils import load_cascade_any, flux_to_luminosity, get_peak_flux, get_HA
+sys.path.append("/home/mseth2/scratch/frb_intensity_analysis")
+import utils
 
 
 '''
@@ -40,6 +46,7 @@ calc_fluxha = True
 
 path = '/project/rpp-chime/adamdong/rfi_filtered' #Path to directory with flux calibrated .pkl files
 outdir = '/home/mseth2/scratch/02_23_fluxcal_results' #Path to save .npz file with combined results
+gains_folder = '/home/mseth2/scratch/gains_hdf5_files'
 
 has = []
 event_ids = []
@@ -53,6 +60,91 @@ lum_uncs = []
 widths = []
 event_ids = []
 fluences = []
+
+def get_peak_flux(cascade_data):
+    try:
+            peak_flux = np.nanmax(
+                np.nanmean(
+                    cascade_data.beams[cascade_data._max_beam_idx].intensity,
+                    axis=0,
+                )
+            )
+            cascade_data.peak_flux = float(peak_flux)
+    except Exception:
+        cascade_data.peak_flux = np.nan
+    return cascade_data
+
+def get_HA(cascade_data):
+    '''
+    Just from Adam's fluxcal script 03/03. Quick fix.
+    '''
+    source_ra = float(83.6330565)
+    source_dec = float(22.0144980)
+    coord = SkyCoord(source_ra, source_dec, unit="deg")
+   
+    event_time, event_time_mjd, width = utils.get_cascade_time(cascade_data)
+    cascade.event_time = event_time
+    cascade.event_time_mjd = event_time_mjd
+
+    if event_time is None:
+        # try to get it from the l2_header
+        event_time = cascade_data.event_time
+
+    # precess coord to epoch of observation
+    #print(f"Event time: {event_time} MJD: {event_time_mjd}")
+    #print(f"Source coord: {coord.ra.deg}, {coord.dec.deg}")
+
+    coord = coord.transform_to(FK5(equinox=Time(event_time)))
+    #print(f"Precessed coord: {coord.ra.deg}, {coord.dec.deg}")
+    # work out the ha of the observation
+    # convert event time to lst
+
+    location = EarthLocation.of_site("chime")
+    # Get the datetime from the event
+    # gain coverter changed on 2020-04-23, after this date just set input fraction to 1
+    # This change is made by Kiyo, the gains already have the fgood factored in after this date
+    if event_time_mjd > 58962:
+        input_fraction = 1.0
+    else:
+        input_fraction = utils.return_good_inputs(gains_folder, event_time)
+    #print(f"Input fraction: {input_fraction}")
+
+    event_time_astropy = Time(event_time, scale="utc", format="datetime")
+    lst = event_time_astropy.sidereal_time("mean", longitude=location.lon)
+    # convert lst to degrees
+    deg_lst = lst.deg
+    ha_deg = deg_lst - coord.ra.deg 
+    if ha_deg > 180:
+        ha_deg -= 360
+    elif ha_deg < -180:
+        ha_deg += 360
+    cascade_data.second_transit = False
+    # see if there are two transits
+    if (coord.dec.deg > 41) & (ha_deg > 90):
+        second_transit_ra = coord.ra.deg - 180
+        if second_transit_ra < 0:
+            # fix negatives
+            second_transit_ra += 360
+        ha_deg_second_transit = deg_lst - second_transit_ra
+        if ha_deg_second_transit > 180:
+            ha_deg_second_transit -= 360
+        elif ha_deg_second_transit < -180:
+            ha_deg_second_transit += 360
+        #print("Using second transit HA")
+        #print(
+            #f"First transit HA: {ha_deg}, Second transit HA: {ha_deg_second_transit}"
+        #)
+        ha_deg = ha_deg_second_transit
+        # set lower limit to true
+        cascade_data.flux_lower_limit = True
+        cascade_data.second_transit = True
+
+    #print(f"LST: {lst}, HA: {ha_deg}")
+    # find out which transit it's on
+
+    # store extra metadata
+    cascade_data.ha_deg = ha_deg
+    return cascade_data
 
 if from_images:
     #### Make a list of filepaths to load data for. Either only do for those that also have a corresponding png, 
@@ -70,7 +162,7 @@ else:
     files = []
     for (root, dirs, file) in os.walk(path):
         for f in file: 
-            if f.endswith('.pkl'):
+            if f.endswith('_flux_calibrated.pkl'):
                 files.append(os.path.join(root, f))
             else:
                 continue
@@ -91,10 +183,10 @@ if get_eventids:
 
     print(f"Saved {len(event_ids)} event IDs to event_ids.txt")
 
-
-for file in files:
+for i, file in enumerate(files, 1):
     try:
-        print(f"Loading {file}....")
+        print(f"\rProcessing {i}/{len(files)}", end="", flush=True)
+
         cascade_data = load_cascade_any(file)
 
         try:
@@ -143,7 +235,7 @@ for file in files:
             lum_uncs.append(lum_err)
 
         if get_fluences:
-            fluence = cascade_data.peak_flux * cascade_data.best_width * cascade_data.dt[0]  # in Jy ms
+            fluence = cascade_data.peak_flux * cascade_data.best_width * cascade_data.dt[0]  # in Jy s
 
 
         #### Save relevant data
@@ -157,6 +249,8 @@ for file in files:
     except Exception as e:
         print(f"Could not load {file} due to {e}")
         continue
+
+print()
 
 if outdir is not None:
     if get_widths:

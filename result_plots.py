@@ -5,7 +5,8 @@ from astropy.time import Time
 
 
 #### Load in flux calibration values ####
-file = '/home/mseth2/scratch/02_23_fluxcal_results/fluxcal_results.npz'
+#file = '/home/mseth2/scratch/02_23_fluxcal_results/fluxcal_results.npz'
+file = '/home/mseth2/scratch/old_calibrations_backup/01_15_calibration/01_15_results/fluxcal_results.npz'
 outdir = '/home/mseth2/scratch/02_23_fluxcal_results'
 
 with np.load(file, allow_pickle=True) as data: 
