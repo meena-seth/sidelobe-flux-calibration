@@ -2,11 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pdb
 from astropy.time import Time
+from uncertainties import unumpy as unp
+
 
 
 #### Load in flux calibration values ####
 #file = '/home/mseth2/scratch/02_23_fluxcal_results/fluxcal_results.npz'
 file = '/home/mseth2/scratch/02_23_fluxcal_results/fluxcal_results.npz'
+widths_file = '/home/mseth2/scratch/02_23_fluxcal_results/pulse_widths.npz'
 outdir = '/home/mseth2/scratch/02_23_fluxcal_results'
 
 with np.load(file, allow_pickle=True) as data: 
@@ -20,13 +23,21 @@ with np.load(file, allow_pickle=True) as data:
     lums = data['lums']
     lum_uncs = data['lum_uncs']
     #fluences = data['fluences']
+
+fluxes[169] = np.nan
+
+with np.load(widths_file, allow_pickle=True) as data:
+    widths = data['widths']
+    ufluxes = unp.uarray(fluxes, total_uncs)
+    fluences = ufluxes * widths
+
     
 
 ## Which plots to generate? 
-flux_ha = True
+flux_ha = False
 flux_time = False 
 flux_hist = False 
-fluence_hist = False 
+fluence_hist = True 
 savepdf = False
 
 if flux_ha:
