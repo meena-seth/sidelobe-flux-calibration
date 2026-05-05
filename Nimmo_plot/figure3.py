@@ -10,6 +10,11 @@ from matplotlib.ticker import FixedLocator
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from matplotlib.patches import Rectangle
 
+def flux_to_luminosity(peak_flux):
+	result = 4 * np.pi * np.square(6.171 * 10**19) * peak_flux * 10**(->
+	return result
+
+
 mpl.rcParams['font.size'] = 7
 mpl.rcParams['font.family'] = 'sans-serif'
 mpl.rcParams['axes.linewidth'] = 1
@@ -61,6 +66,11 @@ plt.scatter(widths,lums,color='orange',marker='x',alpha=0.7)
 plt.text(5e-5,1e4,'This work',color='orange')
 
 
+#### Cordes 2004
+Cordes_lum = flux_to_luminosity(150000)
+Cordes_width = 0.001 #Just go with 1ms
+
+plt.scatter(Cordes_width, Cordes_lum, color='r', marker='*')
 
 # Pulsars general (psrcat)
 psr=open('pulsars.txt','r')
