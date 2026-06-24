@@ -11,7 +11,7 @@ from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from matplotlib.patches import Rectangle
 
 def flux_to_luminosity(peak_flux):
-	result = 4 * np.pi * np.square(6.171 * 10**19) * peak_flux * 10**(->
+	result = 4 * np.pi * np.square(6.171 * 10**19) * peak_flux * 10**(-19)
 	return result
 
 
@@ -229,5 +229,5 @@ ax.set_yticklabels([r'$10^{16}$',r'$10^{19}$',r'$10^{22}$',r'$10^{25}$',r'$10^{2
 
 
 
-plt.savefig('figure3_KN.png',format='png',dpi=300)
+plt.savefig('/home/mseth2/scratch/sidelobe-flux-calibration/Nimmo_plot/figure3_KN.png',format='png',dpi=300)
 plt.show()
