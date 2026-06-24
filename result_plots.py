@@ -8,28 +8,31 @@ from uncertainties import unumpy as unp
 
 #### Load in flux calibration values ####
 #file = '/home/mseth2/scratch/02_23_fluxcal_results/fluxcal_results.npz'
-file = '/home/mseth2/scratch/02_23_fluxcal_results/fluxcal_results.npz'
-widths_file = '/home/mseth2/scratch/02_23_fluxcal_results/pulse_widths.npz'
-outdir = '/home/mseth2/scratch/02_23_fluxcal_results'
+file = '/Users/meenaseth/sidelobe-flux-calibration/fluxcal_results.npz'
+widths_file = '/Users/meenaseth/sidelobe-flux-calibration/pulse_widths.npz'
+#outdir = '/home/mseth2/scratch/02_23_fluxcal_results'
+
+
 
 with np.load(file, allow_pickle=True) as data: 
     has = data['has']
-    event_ids = data['event_ids']
-    event_times = Time(data['event_times']).mjd
     fluxes = data['fluxes']
-    rand_uncs = data['rand_uncs']
-    sys_uncs = data['sys_uncs']
-    total_uncs = data['total_uncs']
-    lums = data['lums']
-    lum_uncs = data['lum_uncs']
+    event_ids = data['event_ids']
+    #event_times = Time(data['event_times']).mjd
+    #rand_uncs = data['rand_uncs']
+    #sys_uncs = data['sys_uncs']
+    #total_uncs = data['total_uncs']
+    #lums = data['lums']
+    #lum_uncs = data['lum_uncs']
     #fluences = data['fluences']
-
-fluxes[169] = np.nan
 
 with np.load(widths_file, allow_pickle=True) as data:
     widths = data['widths']
-    ufluxes = unp.uarray(fluxes, total_uncs)
-    fluences = ufluxes * widths
+    #ufluxes = unp.uarray(fluxes, total_uncs)
+    #fluences = ufluxes * widths
+
+fluxes[169] = np.nan
+
 
     
 

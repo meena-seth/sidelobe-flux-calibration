@@ -10,6 +10,11 @@ from matplotlib.ticker import FixedLocator
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from matplotlib.patches import Rectangle
 
+def flux_to_luminosity(peak_flux):
+	result = 4 * np.pi * np.square(6.171 * 10**19) * peak_flux * 10**(-19)
+	return result
+
+
 mpl.rcParams['font.size'] = 7
 mpl.rcParams['font.family'] = 'sans-serif'
 mpl.rcParams['axes.linewidth'] = 1
@@ -51,16 +56,21 @@ plt.text(1.5e-6,1e-4,r'$10^{24}$ K',rotation=30,color='k',alpha=0.3)
 
 
 #### MY DATA ####
-data = np.load('/home/mseth2/scratch/01_15_calibration/01_15_results/fluxcal_results.npz', allow_pickle=True)
+data = np.load('/Users/meenaseth/sidelobe-flux-calibration/fluxcal_results.npz', allow_pickle=True)
 lums = data['lums'] #ergs/s/Hz
 lums /= 1e20 * 4*np.pi
-widths = np.load('/home/mseth2/scratch/01_15_calibration/01_15_results/pulse_widths.npz', allow_pickle=True)['widths'] #s
+widths = np.load('/Users/meenaseth/sidelobe-flux-calibration/pulse_widths.npz', allow_pickle=True)['widths'] #s
 #widths /= 1000
+
+#### CORDES 2003 
+cordes_lum = flux_to_luminosity(155000) #155 kJy pulse
+cordes_width = 0.001 # 1 millisecond (assumed)
 
 plt.scatter(widths,lums,color='orange',marker='x',alpha=0.7)
 plt.text(5e-5,1e4,'This work',color='orange')
 
-
+plt.scatter(cordes_width, cordes_lum, color='red', marker='*')
+#plt.text(
 
 # Pulsars general (psrcat)
 psr=open('pulsars.txt','r')
@@ -219,5 +229,5 @@ ax.set_yticklabels([r'$10^{16}$',r'$10^{19}$',r'$10^{22}$',r'$10^{25}$',r'$10^{2
 
 
 
-plt.savefig('figure3_KN.png',format='png',dpi=300)
+plt.savefig('/Users/meenaseth/sidelobe-flux-calibration/figure3_KN.png',format='png',dpi=300)
 plt.show()

@@ -1,7 +1,7 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 import pdb
-from iautils import cascade
+#from iautils import cascade
 import pickle
 import pdb
 import copy
@@ -13,6 +13,10 @@ import re
 from glob import glob
 
 
+def flux_to_luminosity(peak_flux):
+    result = 4 * np.pi * np.square(6.171 * 10**19) * peak_flux * 10**(-19)
+    return result 
+
 
 def load_cascade_any(path: str):
     # Allow loading for pkl files
@@ -23,6 +27,6 @@ def load_cascade_any(path: str):
     else:
         return cascade.load_cascade_from_file(path)
 
-def flux_to_luminosity(peak_flux):
-    result = 4 * np.pi * np.square(6.171 * 10**19) * peak_flux * 10**(-19)
-    return result 
+
+
+pdb.set_trace()
