@@ -73,35 +73,36 @@ Sokolowski = {
     "fluence": [76e-3]          # Jy s
 }
 
-dicts = ['Sallmen', 'Cordes', 'Hankins', 'Crossley', 'Jessner', 'Meyers', 'Bera', 'Sokolowski']
-for dict in dicts[0:4]:
-      dict['fluence'] = dict['flux'] * dict['width'] #Jy-s
+dict_names = ['Sallmen 1999', 'Cordes 2004', 'Hankins 2003', 'Crossley 2010', 'Jessner 2018', 'Meyers 2017', 'Bera 2019', 'Sokolowski 2025']
+dicts = [Sallmen, Cordes, Hankins, Crossley, Jessner, Meyers, Bera, Sokolowski]
+for dict in dicts[0:5]:
+      dict['fluence'] = np.array(dict['flux']) * np.array(dict['width']) #Jy-s
 
-plt.figure()
+plt.figure(figsize=(8, 5))
 ax = plt.gca()
 
 ax.set_xscale('log')
+ax.set_yscale('log')
 ax.set_xlim(0.1, 16)
-xticks = [0.1, 0.2, 0.5, 1, 2, 5, 10, 16]
-xticklabels = ["100 MHz", "200 MHz", "500 MHz","1 GHz", "2 GHz", "5 GHz", "10 GHz", "16 GHz"]
+xticks = [0.1, 0.2, 0.5, 1, 2, 5, 10, 16] #GHz
+xticklabels = ["0.1", "0.2", "0.5","1", "2", "5", "10", "16"] #GHz
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 
-
+for dict, name in zip(dicts, dict_names):
+      plt.scatter(np.array(dict['freq']), np.array(dict['fluence']), label=name, marker='+')
 
 #### MY DATA 
 data = np.load('/Users/meenaseth/sidelobe-flux-calibration/fluxcal_results.npz', allow_pickle=True)
-fluences = data['fluences']
-plt.scatter(600*10**6, fluences, label='This work')
+widths = np.load('/Users/meenaseth/sidelobe-flux-calibration/pulse_widths.npz', allow_pickle=True)['widths'] #s
+fluences = data['fluences'] #Jy-s 
+yvals = np.max(fluences), np.min(fluences), np.median(fluences)
+xvals = np.full_like(yvals, 0.6)
+plt.scatter(xvals, yvals, label='This work', marker='*') #Put everything at 600MHz
 
-
-#### Hankins 2003 
-cnano=np.loadtxt('crab_nano.txt')
-for n in range(len(cnano)):
-    plotx, ploty = plot_point(cnano[n][0], cnano[n][1], freq=5.5*10**9)
-    plt.scatter(plotx, ploty, color='orange', marker='+', label='Nanoshots')
-
-#### Hankins 2003 
-
-
+plt.legend(fontsize=6)
+plt.grid('show', alpha=0.4)
+plt.xlabel('Central Observing Frequency (GHz)')
+plt.ylabel('Fluence (Jy-s)')
+plt.savefig('GP_fluences.png', dpi=800)
 
