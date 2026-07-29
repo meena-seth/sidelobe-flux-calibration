@@ -3,7 +3,35 @@ import matplotlib.pyplot as plt
 import pdb
 from astropy.time import Time
 from uncertainties import unumpy as unp
+outdir = '/home/mseth2/scratch'
 
+## Which plots to generate? 
+flux_ha = False
+flux_time = False 
+flux_hist = False 
+fluence_hist = True 
+savepdf = False
+beammodel=True
+
+if beammodel:
+    beammodel_file = '/home/mseth2/scratch/TAU_A_combined.npz' #.npz, output of frb_analysis/sidelobe_analysis pipeline
+    with np.load(beammodel_file, allow_pickle=True) as bm:
+        intensity = bm['intensity_norm']
+        freqs = bm['freqs']
+        has = bm['has']
+
+    ref_freqs = [400, 500, 600, 700, 800]
+    colors = ['darkred', 'orange', 'gold', 'turquoise', 'dodgerblue']
+    plt.figure(figsize=(10, 6))
+    for f, c in zip(ref_freqs, colors):
+        freqidx = np.where(freqs==f)[0]
+        intensity_slice = intensity[freqidx,:]
+        plt.plot(has, intensity_slice, color=c, label=f)
+
+    plt.xlabel('Degrees from Meridian', fontsize=13)
+    plt.ylabel('Normalized Intensity', fontsize=13)
+    plt.show()
+    plt.savefig(f"{outdir}/holography.pdf")
 
 
 #### Load in flux calibration values ####
@@ -11,7 +39,6 @@ from uncertainties import unumpy as unp
 file = '/Users/meenaseth/sidelobe-flux-calibration/fluxcal_results.npz'
 widths_file = '/Users/meenaseth/sidelobe-flux-calibration/pulse_widths.npz'
 #outdir = '/home/mseth2/scratch/02_23_fluxcal_results'
-
 
 
 with np.load(file, allow_pickle=True) as data: 
@@ -36,12 +63,8 @@ fluxes[169] = np.nan
 
     
 
-## Which plots to generate? 
-flux_ha = False
-flux_time = False 
-flux_hist = False 
-fluence_hist = True 
-savepdf = False
+
+
 
 if flux_ha:
     '''
