@@ -39,7 +39,7 @@ if beammodel:
 file = '/Users/meenaseth/sidelobe-flux-calibration/fluxcal_results.npz'
 widths_file = '/Users/meenaseth/sidelobe-flux-calibration/pulse_widths.npz'
 #outdir = '/home/mseth2/scratch/02_23_fluxcal_results'
-
+outdir = '/Users/meenaseth/sidelobe-flux-calibration'
 
 with np.load(file, allow_pickle=True) as data: 
     has = data['has']
@@ -60,10 +60,36 @@ with np.load(widths_file, allow_pickle=True) as data:
 
 fluxes[169] = np.nan
 
-
     
+## Which plots to generate? 
+flux_ha = False
+flux_time = False 
+flux_hist = False 
+fluence_hist = True 
+savepdf = False
+beammodel=True
 
+if beammodel:
+    beammodel_file = '/Users/meenaseth/gp_analysis/TAU_A_combined.npz' #.npz, output of frb_analysis/sidelobe_analysis pipeline
+    with np.load(beammodel_file, allow_pickle=True) as bm:
+        intensity = bm['intensity_norm']
+        freqs = bm['freqs']
+        has = bm['has']
 
+    ref_freqs = [400.390625, 500, 600, 700, 800]
+    colors = ['darkred', 'orange', 'gold', 'turquoise', 'dodgerblue']
+    plt.figure(figsize=(15, 6))
+    for f, c in zip(ref_freqs, colors):
+        freqidx = np.where(freqs==f)[0]
+        intensity_slice = intensity[freqidx,:].T
+        intensity_slice[intensity_slice<=0] = np.nan
+        plt.plot(has, intensity_slice, linewidth=1, color=c, alpha=0.7, label=f)
+
+    plt.xlabel('Degrees from Meridian', fontsize=13)
+    plt.ylabel('Normalized Intensity', fontsize=13)
+    plt.yscale('log')
+    plt.legend()
+    plt.savefig(f"{outdir}/holography.png", dpi=900)
 
 
 if flux_ha:

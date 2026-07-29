@@ -1,7 +1,7 @@
 import numpy as np
 import astropy.units as u
 from astropy.time import Time 
-from astroplan import Observer, FixedTarget, is_observable
+from astroplan import Observer, FixedTarget, is_observable, is_event_observable
 from astroplan.plots import plot_finder_image
 from astroplan.constraints import Constraint, AltitudeConstraint
 import matplotlib.pyplot as plt
@@ -15,19 +15,20 @@ end_mjd = 60776
 chime = Observer.at_site('chime')
 crab = FixedTarget.from_name('Crab Pulsar')
 
-time_range = Time([start_mjd, end_mjd], format='mjd', scale='utc')
+t_start = Time(start_mjd, format='mjd', scale='utc')
+t_end = Time(end_mjd, format='mjd', scale='utc')
+n_steps = int(((t_end - t_start) / dt).decompose().value)
+times_grid = t_start + np.arange(n_steps) * dt
+
 alt_constraint = AltitudeConstraint(min=0 * u.deg) #Has to be in the sky 
-alt_mask = is_observable(
+alt_mask = is_event_observable(
     constraints=[alt_constraint],
     observer=chime,
-    targets=[crab],
-    time_range=time_range,
-    time_grid_resolution=dt,
+    target=crab,         
+    times=times_grid
 )[0]
 
-n_steps = int(((time_range[1] - time_range[0]) / dt).decompose().value)
-times = time_range[0] + np.arange(n_steps) * dt #Making array of all the times 
-ha = chime.target_hour_angle(times, crab) #Calculate HA for each
+ha = chime.target_hour_angle(times_grid, crab) #Calculate HA for each
 ha_deg = ha.wrap_at(180 * u.deg).deg
 
 ha_mask_e = (ha_deg >= -180) & (ha_deg <= -ha_lim)
@@ -37,7 +38,7 @@ e_steps = alt_mask & ha_mask_e
 w_steps = alt_mask & ha_mask_w
 total_steps = sum(e_steps + w_steps) 
 
-total_obs_time = (time_range[1] - time_range[0]).to(u.hour)
+total_obs_time = (sum(alt_mask)*dt).to(u.hour)
 total_eff_time = (total_steps * dt).to(u.hour)
 
 print(f"""Between MJD {start_mjd} - {end_mjd}:
