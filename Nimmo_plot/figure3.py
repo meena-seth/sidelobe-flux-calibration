@@ -14,6 +14,19 @@ def flux_to_luminosity(peak_flux):
 	result = 4 * np.pi * np.square(6.171 * 10**19) * peak_flux * 10**(-19)
 	return result
 
+def luminosity_to_flux(peak_luminosity):
+     result = peak_luminosity / (4 * np.pi * np.square((6.171 * 10**19)) * 10**(-19))
+     return result
+
+def plot_point(flux, width, freq):
+     '''
+     Flux in Jy, width in s, freq in Hz 
+     '''
+     lum = flux_to_luminosity(flux)
+     lum /= 1e20 * 4 * np.pi
+     freq_GHz = freq/1e+9
+     scaled_width = width * freq_GHz
+     return scaled_width,lum
 
 mpl.rcParams['font.size'] = 7
 mpl.rcParams['font.family'] = 'sans-serif'
@@ -60,17 +73,37 @@ data = np.load('/Users/meenaseth/sidelobe-flux-calibration/fluxcal_results.npz',
 lums = data['lums'] #ergs/s/Hz
 lums /= 1e20 * 4*np.pi
 widths = np.load('/Users/meenaseth/sidelobe-flux-calibration/pulse_widths.npz', allow_pickle=True)['widths'] #s
-#widths /= 1000
+plt.scatter(widths*0.6, lums, color='darkviolet', marker='+', alpha=0.6)
 
-#### CORDES 2003 
-cordes_lum = flux_to_luminosity(155000) #155 kJy pulse
-cordes_width = 0.001 # 1 millisecond (assumed)
+#### CORDES 2004 
+cordes_x, cordes_lum = plot_point(flux=155e+3, width=0.001, freq=415e+6)
+plt.scatter(cordes_x, cordes_lum, color='coral', marker='+')
+plt.text(cordes_x*0.7,cordes_lum*3,'Cordes 2004',color='coral')
 
-plt.scatter(widths,lums,color='orange',marker='x',alpha=0.7)
-plt.text(5e-5,1e4,'This work',color='orange')
+#### BERA & CHENGALUR 2019
+bera_x, bera_lum = plot_point(flux=4e+6, width=1.175e-6, freq=1.33e+9)
+plt.scatter(bera_x, bera_lum, color='coral', marker='+')
+plt.text(bera_x*0.2,bera_lum*1.3,'Bera & Chengalur 2019',color='coral')
 
-plt.scatter(cordes_width, cordes_lum, color='red', marker='*')
-#plt.text(
+#### MEYERS 2017
+meyers_x, meyers_lum = plot_point(flux=4600, width=1.254e-3, freq=732e+6)
+plt.scatter(meyers_x, meyers_lum, color='r', marker='+')
+plt.text(meyers_x*0.038,meyers_lum*0.7,'Meyers 2017',color='r')
+
+#### JESSNER 2010
+jessner_x, jessner_lum = plot_point(flux=150e+3, width=100e-6, freq=8.5e+9)
+#plt.scatter(jessner_x, jessner_lum, color='r', marker='+')
+#plt.text(jessner_x*1.28,jessner_lum*0.99,'Jessner 2010?',color='r')
+
+#### HANKINS 2003 (check)
+hankins_x, hankins_lum = plot_point(flux=1e+3, width=2e-9, freq=5.56e+9)
+plt.scatter(hankins_x, hankins_lum, color='blue', marker='*', alpha=0.3)
+plt.text(hankins_x*1.28,hankins_lum*0.99,'Hankins 2003',color='blue')
+
+#### HANKINS 2007 (check)
+Hankins_x, Hankins_lum = plot_point(flux=2e+6, width=0.4e-9, freq=9e+9)
+plt.scatter(Hankins_x, Hankins_lum, color='blue', marker='*', alpha=0.3)
+plt.text(Hankins_x*1.28,Hankins_lum*0.99,'Hankins 2007',color='blue')
 
 # Pulsars general (psrcat)
 psr=open('pulsars.txt','r')
@@ -158,8 +191,8 @@ for n in range(len(sgr)):
     sgrx = np.append(sgrx,sgr[n][1])
     sgry = np.append(sgry,sgr[n][0])
 
-plt.scatter(sgrx,sgry,alpha=0.8,color='purple',marker='x')
-plt.text(5e-3,1e5,'SGR 1935+2154',color='purple')
+plt.scatter(sgrx,sgry,alpha=0.8,color='darkturquoise',marker='x')
+plt.text(5e-3,1e5,'SGR 1935+2154',color='darkturquoise')
 #plt.fill_between([np.min(sgrx),np.max(sgrx)],[np.min(sgry),np.min(sgry)],[np.max(sgry),np.max(sgry)],alpha=0.7,color='pink')
 
 # FRB 190711
@@ -199,7 +232,7 @@ for n in range(len(m81nano)):
 
 
 plt.scatter(m81nanox,m81nanoy,color='k',marker='*')
-plt.text(9e-8,1e7,'FRB 20200120E', color='black')
+plt.text(9e-8,1e9,'FRB 20200120E', color='black')
 
 
 
@@ -229,5 +262,5 @@ ax.set_yticklabels([r'$10^{16}$',r'$10^{19}$',r'$10^{22}$',r'$10^{25}$',r'$10^{2
 
 
 
-plt.savefig('/Users/meenaseth/sidelobe-flux-calibration/figure3_KN.png',format='png',dpi=300)
+plt.savefig('/Users/meenaseth/sidelobe-flux-calibration/figure3_KN_GPs.png',format='png',dpi=300)
 plt.show()
