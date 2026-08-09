@@ -5,34 +5,6 @@ from astropy.time import Time
 from uncertainties import unumpy as unp
 outdir = '/home/mseth2/scratch'
 
-## Which plots to generate? 
-flux_ha = False
-flux_time = False 
-flux_hist = False 
-fluence_hist = True 
-savepdf = False
-beammodel=True
-
-if beammodel:
-    beammodel_file = '/home/mseth2/scratch/TAU_A_combined.npz' #.npz, output of frb_analysis/sidelobe_analysis pipeline
-    with np.load(beammodel_file, allow_pickle=True) as bm:
-        intensity = bm['intensity_norm']
-        freqs = bm['freqs']
-        has = bm['has']
-
-    ref_freqs = [400, 500, 600, 700, 800]
-    colors = ['darkred', 'orange', 'gold', 'turquoise', 'dodgerblue']
-    plt.figure(figsize=(10, 6))
-    for f, c in zip(ref_freqs, colors):
-        freqidx = np.where(freqs==f)[0]
-        intensity_slice = intensity[freqidx,:]
-        plt.plot(has, intensity_slice, color=c, label=f)
-
-    plt.xlabel('Degrees from Meridian', fontsize=13)
-    plt.ylabel('Normalized Intensity', fontsize=13)
-    plt.show()
-    plt.savefig(f"{outdir}/holography.pdf")
-
 
 #### Load in flux calibration values ####
 #file = '/home/mseth2/scratch/02_23_fluxcal_results/fluxcal_results.npz'
@@ -76,20 +48,22 @@ if beammodel:
         freqs = bm['freqs']
         has = bm['has']
 
-    ref_freqs = [400.390625, 500, 600, 700, 800]
-    colors = ['darkred', 'orange', 'gold', 'turquoise', 'dodgerblue']
+    intensity[intensity<5e-4]=np.nan
+    ref_freqs = [800, 700, 600, 500, 400.390625]
+    colors = ['dodgerblue', 'turquoise', 'orange', 'darkred']
+    labels = ['700-800MHz', '600-700MHz', '500-600MHz', '400-500MHz']
     plt.figure(figsize=(15, 6))
-    for f, c in zip(ref_freqs, colors):
-        freqidx = np.where(freqs==f)[0]
-        intensity_slice = intensity[freqidx,:].T
-        intensity_slice[intensity_slice<=0] = np.nan
-        plt.plot(has, intensity_slice, linewidth=1, color=c, alpha=0.7, label=f)
+    for n, c, l in zip(np.arange(0,4), colors, labels):
+        idx1 = np.where(freqs==ref_freqs[n])[0].item()
+        idx2 = np.where(freqs==ref_freqs[n+1])[0].item()
+        avgd_slice = np.nansum(intensity[idx1:idx2, :], axis=0)
+        plt.plot(has, avgd_slice, linewidth=1, color=c, alpha=0.7, label=l)
 
     plt.xlabel('Degrees from Meridian', fontsize=13)
     plt.ylabel('Normalized Intensity', fontsize=13)
     plt.yscale('log')
     plt.legend()
-    plt.savefig(f"{outdir}/holography.png", dpi=900)
+    plt.savefig(f"{outdir}/holography_avgd.png", dpi=900)
 
 
 if flux_ha:
