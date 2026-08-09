@@ -12,7 +12,9 @@ Pulse parameters
 sigma = np.linspace(80e-9, 2e-3, 8000) #Intrinsic widths
 mu = 0
 tau = 26e-6 #Scattering time, Nadeu 2026 p.10
-Speak = 15e+3 #15kJy
+Speak = 5e+3 
+Speak2 = 20e+3
+scale_factor = Speak2/Speak
 
 bb_Speaks = []
 
@@ -21,7 +23,7 @@ Modeling pulses
 (Gaussian--intrinsic width convolved with exponential--scattering time)
 '''
 stokes_dt = 1e-3  #1ms time resolution
-bb_dt = 2.56e-6 #2.56us time resolution
+bb_dt = 2.56e-6 #2.56us time resolution for CHIME bb
 factor = int(stokes_dt/bb_dt) #~390
 
 t = np.arange(-10e-3, 10e-3, stokes_dt) 
@@ -74,17 +76,32 @@ for test_sigma in sigma:
 
 bb_Speaks = np.array(bb_Speaks)
 
-plt.figure(figsize=(10,5))
-plt.semilogx(sigma, bb_Speaks/1000)
-plt.xticks(
+fig, ax_left = plt.subplots(figsize=(10, 5))
+ax_left.semilogx(sigma, bb_Speaks / 1000, color='tab:blue')
+ax_left.tick_params(labelsize=12)
+ax_left.set_xticks(
     [1e-7, 1e-6, 1e-5, 1e-4, 1e-3],
-    ["100 ns", "1 μs", "10 μs", "100 μs", "1 ms"]
+    ["100 ns", "1 μs", "10 μs", "100 μs", "1 ms"],
+    fontsize=12
 )
-plt.xlabel("Intrinsic pulse width")
-plt.ylabel("Peak Flux in Baseband (kJy)")
-plt.gca().yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
-plt.grid(True, which='both')
-plt.savefig("15kJy_widthvsbb.png")
+ax_left.set_xlabel("Intrinsic pulse width", fontsize=15)
+ax_left.set_ylabel("Peak Flux in Baseband (kJy)\n for 5kJy pulse in Stokes", fontsize=15)
+ax_left.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+ax_left.grid(True, which='both')
+
+# Right axis shows same relationship but values for a 20kJY pulse
+ax_right = ax_left.twinx()
+ax_right.tick_params(labelsize=12)
+ax_right.set_ylabel("for 20kJy pulse in Stokes", fontsize=15)
+def sync_right_axis(ax_left):
+    y_min, y_max = ax_left.get_ylim()
+    ax_right.set_ylim(y_min * scale_factor, y_max * scale_factor)
+
+ax_left.callbacks.connect("ylim_changed", sync_right_axis)
+sync_right_axis(ax_left)  
+
+fig.tight_layout()
+plt.savefig("widthvsbb.pdf", format='pdf', bbox_inches='tight')
 
 
 
