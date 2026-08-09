@@ -52,18 +52,18 @@ if beammodel:
     ref_freqs = [800, 700, 600, 500, 400.390625]
     colors = ['dodgerblue', 'turquoise', 'orange', 'darkred']
     labels = ['700-800MHz', '600-700MHz', '500-600MHz', '400-500MHz']
-    plt.figure(figsize=(15, 6))
+    plt.figure(figsize=(18, 6))
     for n, c, l in zip(np.arange(0,4), colors, labels):
         idx1 = np.where(freqs==ref_freqs[n])[0].item()
         idx2 = np.where(freqs==ref_freqs[n+1])[0].item()
         avgd_slice = np.nansum(intensity[idx1:idx2, :], axis=0)
-        plt.plot(has, avgd_slice, linewidth=1, color=c, alpha=0.7, label=l)
+        plt.plot(has, avgd_slice, linewidth=2, color=c, alpha=0.7, label=l)
 
-    plt.xlabel('Degrees from Meridian', fontsize=13)
-    plt.ylabel('Normalized Intensity', fontsize=13)
+    plt.xlabel('Degrees from Meridian', fontsize=17)
+    plt.ylabel('Normalized Intensity', fontsize=17)
     plt.yscale('log')
-    plt.legend()
-    plt.savefig(f"{outdir}/holography_avgd.png", dpi=900)
+    plt.legend(fontsize='14')
+    plt.savefig(f"{outdir}/holography_avgd.pdf",format='pdf',bbox_inches='tight')
 
 
 if flux_ha:
