@@ -76,7 +76,7 @@ for test_sigma in sigma:
 
 bb_Speaks = np.array(bb_Speaks)
 
-fig, ax_left = plt.subplots(figsize=(10, 5))
+fig, ax_left = plt.subplots(figsize=(12, 5))
 ax_left.semilogx(sigma, bb_Speaks / 1000, color='tab:blue')
 ax_left.tick_params(labelsize=12)
 ax_left.set_xticks(
