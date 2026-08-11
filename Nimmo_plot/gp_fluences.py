@@ -124,6 +124,13 @@ J2109_50 = {
     "estimate":False
 }
 
+B1937_21 = {
+    "obs": ["CHIME"],
+    "freq": [1.65, 2.084, 1.396, 0.327, 0.430],         # GHz; In order: Soglasnov 2004, Zhuravlev 2012, Mckee 2018, Mahajan 2024, Kinkhabwala 1999
+    "fluence": [4.55e-3, 0.18e-3, 492e-6, 160e-6, 0.0228],          # Jy s
+    "estimate":False
+}
+
 B0329_54 = {
     "obs": ["GMRT"],
     "freq": [1.41],              # GHz
@@ -150,11 +157,11 @@ crab_dicts = [Sallmen, Hankins2003, Cordes, Hankins2007, Bhat, Popov, Crossley, 
 crab_names = ['Sallmen 1999', 'Hankins 2003', 'Cordes 2004','Hankins 2007', 'Bhat 2007', 'Popov 2009', 
               'Crossley 2010', 'Jessner 2010', 'Meyers 2017', 'Bera 2019', 'Sokolowski 2025']
 
-nanoshots = ['Hankins 2003', 'Hankin 2007', 'Jessner 2010']
+nanoshots = ['Hankins 2003', 'Hankins 2007', 'Jessner 2010']
 microbursts = ['Sallmen 1999', 'Crossley 2010', 'Bera 2019', 'Bhat 2007', 'Popov 2009']
 
-other_dicts = J2109_50, B0329_54, Vela, sgr1935
-other_names = ['J2019+50', 'B0329+54', 'Vela Pulsar', 'SGR1935+15']
+other_dicts = J2109_50, B1937_21, B0329_54, Vela, sgr1935
+other_names = ['J2019+50', 'B1937+21', 'B0329+54', 'Vela Pulsar', 'SGR1935+2154']
 
 for dict in crab_dicts:
         try:
@@ -185,7 +192,7 @@ for dict, name in zip(crab_dicts, crab_names):
     else:
          plt.scatter(np.array(dict['freq']), np.array(dict['fluence']), marker=marker, facecolor=to_rgba('gray', alpha=0.8), edgecolors='gray', linewidths=1)
 
-colors = ['orangered', 'seagreen', 'royalblue', 'mediumvioletred']
+colors = ['orangered', 'deeppink', 'green', 'darkorchid', 'turquoise']
 for dict, name, color in zip(other_dicts, other_names, colors):
     if dict.get('estimate', True):
          plt.scatter(np.array(dict['freq']), np.array(dict['fluence']), marker='o', facecolor='none', edgecolors=color, linewidths=1)
@@ -198,7 +205,8 @@ legend1_labels = ['GP envelope', 'Microburst', 'Nanoshot']
 legend1_elements = [Line2D([0], [0], linestyle='none', marker=marker, markerfacecolor=to_rgba('gray', alpha=0.8), markeredgecolor='gray', markeredgewidth=1, label=label)
                     for marker, label in zip(legend1_markers, legend1_labels)
                    ]
-legend1_elements.append(Line2D([0], [0], linestyle='none', marker='', label='(Unfilled markers indicate \nestimated values)'))
+legend1_elements.append(Line2D([0], [0], linestyle='none', marker='', label='(Unfilled markers \nindicate \nestimated values)'))
+
 
 legend2_elements = [Line2D([0], [0], color=color, lw=2, label=label)
                     for color, label in zip(colors, other_names)
@@ -206,7 +214,7 @@ legend2_elements = [Line2D([0], [0], color=color, lw=2, label=label)
 
 
 legend1 = ax.legend(handles=legend1_elements, title='Crab Pulses', loc='lower left')
-legend1.get_title().set_ha('left')
+legend1.get_title().set_ha('right')
 ax.add_artist(legend1)
 legend2 = ax.legend(handles=legend2_elements, title='Other Sources', loc='lower right')
 legend2.get_title().set_ha('left')
@@ -225,5 +233,10 @@ plt.scatter(xvals, yvals, label='This work', marker='o', facecolor=to_rgba('k', 
 plt.grid('show', alpha=0.4)
 plt.xlabel('Central Observing Frequency (GHz)')
 plt.ylabel('Fluence (Jy-s)')
-plt.savefig('GP_fluences.png', dpi=800, bbox_inches='tight')
+
+savepdf =True
+if savepdf:
+     plt.savefig('GP_fluences.pdf', format='pdf', bbox_inches='tight')
+else:
+     plt.savefig('GP_fluences.png', dpi=900, bbox_inches='tight')
 
