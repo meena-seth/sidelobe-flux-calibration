@@ -164,6 +164,7 @@ for dict in crab_dicts:
 
 plt.figure(figsize=(13, 6))
 ax = plt.gca()
+
 ax.set_xscale('log')
 ax.set_yscale('log')
 ax.set_xlim(0.1, 16)
@@ -181,10 +182,14 @@ colors = [
     '#00838F',  
     '#C49A00',  
     '#E04F9D',  
-    '#546E7A',  
+    '#546E7A',
+    '#00BCD4', 
+    '#AEEA00', 
+    '#FF6F00',  
     '#FF1744'   
 ]
-for dict, name, color in zip(crab_dicts, crab_names[0:9], colors[0:9]):
+
+for dict, name, color in zip(crab_dicts, crab_names[:-1], colors[:-1]):
     if name in nanoshots:
          marker = 'P'
     elif name in microbursts:
@@ -202,7 +207,6 @@ legend1_labels = ['GP envelope', 'Microburst', 'Nanoshot']
 legend1_elements = [Line2D([0], [0], linestyle='none', marker=marker, markerfacecolor=to_rgba('k', alpha=0.8), markeredgecolor='k', markeredgewidth=1, label=label)
                     for marker, label in zip(legend1_markers, legend1_labels)
                    ]
-
 legend1_elements.append(Line2D([0], [0], linestyle='none', marker='', label='(Unfilled markers indicate \nestimated values)'))
 
 legend2_elements = [Line2D([0], [0], color=color, lw=2, label=label)
@@ -210,10 +214,10 @@ legend2_elements = [Line2D([0], [0], color=color, lw=2, label=label)
                    ]
 
 
-legend1 = ax.legend(handles=legend1_elements, loc='lower left', bbox_to_anchor=[0.175, 0.01], handlelength=1.5, handletextpad=0.8, borderpad=0.7)
+legend1 = ax.legend(handles=legend1_elements, fontsize=8, loc='lower left', bbox_to_anchor=[0.175, 0.01], handlelength=1.5, handletextpad=0.8, borderpad=0.7)
 legend1.get_title().set_ha('left')
 ax.add_artist(legend1)
-legend2 = ax.legend(handles=legend2_elements, loc='lower left')
+legend2 = ax.legend(handles=legend2_elements, fontsize=8, loc='lower left')
 legend2.get_title().set_ha('left')
 
          
@@ -224,13 +228,11 @@ widths = np.load('/Users/meenaseth/sidelobe-flux-calibration/pulse_widths.npz', 
 fluences = data['fluences'] #Jy-s 
 yvals = np.max(fluences), np.min(fluences), np.median(fluences)
 xvals = np.full_like(yvals, 0.6)
-plt.scatter(xvals, yvals, label='This work', marker='o', facecolor=to_rgba('#FF1744', alpha=0.8), edgecolors= '#FF1744',) #Put everything at 600MHz
+plt.scatter(xvals, yvals, marker='o', facecolor=to_rgba('#FF1744', alpha=0.8), edgecolors= '#FF1744',) #Put everything at 600MHz
 
 #plt.legend(fontsize=6)
 plt.grid('show', alpha=0.4)
 plt.xlabel('Central Observing Frequency (GHz)')
 plt.ylabel('Fluence (Jy-s)')
-plt.show()
-
 plt.savefig('GP_fluences.png', dpi=800, bbox_inches='tight')
 
