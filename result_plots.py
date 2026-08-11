@@ -50,15 +50,17 @@ if beammodel:
 
     intensity[intensity<5e-4]=np.nan
     ref_freqs = [800, 700, 600, 500, 400.390625]
-    colors = ['dodgerblue', 'turquoise', 'orange', 'darkred']
+    colors = ['dodgerblue', 'turquoise', 'orange', 'deeppink']
     labels = ['700-800MHz', '600-700MHz', '500-600MHz', '400-500MHz']
     plt.figure(figsize=(18, 6))
     for n, c, l in zip(np.arange(0,4), colors, labels):
         idx1 = np.where(freqs==ref_freqs[n])[0].item()
         idx2 = np.where(freqs==ref_freqs[n+1])[0].item()
-        avgd_slice = np.nansum(intensity[idx1:idx2, :], axis=0)
-        plt.plot(has, avgd_slice, linewidth=2, color=c, alpha=0.7, label=l)
+        avgd_slice = np.nanmean(intensity[idx1:idx2, :], axis=0)
+        plt.plot(has, avgd_slice, linewidth=1, color=c, label=l)
 
+    avgd_all = np.nanmean(intensity, axis=0)
+    plt.plot(has, avgd_all, linewidth=3, color='gray', alpha=0.4, label='Average')
     plt.xlabel('Degrees from Meridian', fontsize=17)
     plt.ylabel('Normalized Intensity', fontsize=17)
     plt.yscale('log')
