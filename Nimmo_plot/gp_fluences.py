@@ -148,7 +148,7 @@ sgr1935 = {
 
 crab_dicts = [Sallmen, Hankins2003, Cordes, Hankins2007, Bhat, Popov, Crossley, Jessner, Meyers, Bera, Sokolowski]
 crab_names = ['Sallmen 1999', 'Hankins 2003', 'Cordes 2004','Hankins 2007', 'Bhat 2007', 'Popov 2009', 
-              'Crossley 2010', 'Jessner 2010', 'Meyers 2017', 'Bera 2019', 'Sokolowski 2025', 'This work']
+              'Crossley 2010', 'Jessner 2010', 'Meyers 2017', 'Bera 2019', 'Sokolowski 2025']
 
 nanoshots = ['Hankins 2003', 'Hankin 2007', 'Jessner 2010']
 microbursts = ['Sallmen 1999', 'Crossley 2010', 'Bera 2019', 'Bhat 2007', 'Popov 2009']
@@ -172,19 +172,7 @@ xticklabels = ["0.1", "0.2", "0.5","1", "2", "5", "10", "16"] #GHz
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 
-colors = [
-    '#1565C0',  
-    '#F57C00',  
-    '#2E9B57',  
-    '#D32F2F',  
-    '#7B1FA2',  
-    '#00838F',  
-    '#C49A00',  
-    '#E04F9D',  
-    '#546E7A',  
-    '#FF1744'   
-]
-for dict, name, color in zip(crab_dicts, crab_names[0:9], colors[0:9]):
+for dict, name in zip(crab_dicts, crab_names):
     if name in nanoshots:
          marker = 'P'
     elif name in microbursts:
@@ -193,27 +181,34 @@ for dict, name, color in zip(crab_dicts, crab_names[0:9], colors[0:9]):
          marker = 'o'
 
     if dict.get('estimate', True):
-         plt.scatter(np.array(dict['freq']), np.array(dict['fluence']), marker=marker, facecolor='none', edgecolors=color, linewidths=1)
+         plt.scatter(np.array(dict['freq']), np.array(dict['fluence']), marker=marker, facecolor='none', edgecolors='gray', linewidths=1)
     else:
-         plt.scatter(np.array(dict['freq']), np.array(dict['fluence']), marker=marker, facecolor=to_rgba(color, alpha=0.8), edgecolors=color, linewidths=1)
+         plt.scatter(np.array(dict['freq']), np.array(dict['fluence']), marker=marker, facecolor=to_rgba('gray', alpha=0.8), edgecolors='gray', linewidths=1)
+
+colors = ['orangered', 'seagreen', 'royalblue', 'mediumvioletred']
+for dict, name, color in zip(other_dicts, other_names, colors):
+    if dict.get('estimate', True):
+         plt.scatter(np.array(dict['freq']), np.array(dict['fluence']), marker='o', facecolor='none', edgecolors=color, linewidths=1)
+    else:
+         plt.scatter(np.array(dict['freq']), np.array(dict['fluence']), marker='o', facecolor=to_rgba(color, alpha=0.8), edgecolors=color, linewidths=1)
+
 
 legend1_markers = ['o', 'X', 'P']
 legend1_labels = ['GP envelope', 'Microburst', 'Nanoshot']
-legend1_elements = [Line2D([0], [0], linestyle='none', marker=marker, markerfacecolor=to_rgba('k', alpha=0.8), markeredgecolor='k', markeredgewidth=1, label=label)
+legend1_elements = [Line2D([0], [0], linestyle='none', marker=marker, markerfacecolor=to_rgba('gray', alpha=0.8), markeredgecolor='gray', markeredgewidth=1, label=label)
                     for marker, label in zip(legend1_markers, legend1_labels)
                    ]
-
 legend1_elements.append(Line2D([0], [0], linestyle='none', marker='', label='(Unfilled markers indicate \nestimated values)'))
 
 legend2_elements = [Line2D([0], [0], color=color, lw=2, label=label)
-                    for color, label in zip(colors, crab_names)
+                    for color, label in zip(colors, other_names)
                    ]
 
 
-legend1 = ax.legend(handles=legend1_elements, loc='lower left', bbox_to_anchor=[0.175, 0.01], handlelength=1.5, handletextpad=0.8, borderpad=0.7)
+legend1 = ax.legend(handles=legend1_elements, title='Crab Pulses', loc='lower left')
 legend1.get_title().set_ha('left')
 ax.add_artist(legend1)
-legend2 = ax.legend(handles=legend2_elements, loc='lower left')
+legend2 = ax.legend(handles=legend2_elements, title='Other Sources', loc='lower right')
 legend2.get_title().set_ha('left')
 
          
@@ -224,13 +219,11 @@ widths = np.load('/Users/meenaseth/sidelobe-flux-calibration/pulse_widths.npz', 
 fluences = data['fluences'] #Jy-s 
 yvals = np.max(fluences), np.min(fluences), np.median(fluences)
 xvals = np.full_like(yvals, 0.6)
-plt.scatter(xvals, yvals, label='This work', marker='o', facecolor=to_rgba('#FF1744', alpha=0.8), edgecolors= '#FF1744',) #Put everything at 600MHz
+plt.scatter(xvals, yvals, label='This work', marker='o', facecolor=to_rgba('k', alpha=0.8), edgecolors= 'k',) #Put everything at 600MHz
 
 #plt.legend(fontsize=6)
 plt.grid('show', alpha=0.4)
 plt.xlabel('Central Observing Frequency (GHz)')
 plt.ylabel('Fluence (Jy-s)')
-plt.show()
-
 plt.savefig('GP_fluences.png', dpi=800, bbox_inches='tight')
 
