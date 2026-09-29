@@ -4,7 +4,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, EarthLocation
 from beam_model import utils
 
-
+### MAKING THE THEORETICAL CURVE 
 loc = EarthLocation.of_site('CHIME')
 
 source = SkyCoord.from_name("Crab Pulsar")
@@ -30,12 +30,19 @@ for h in has:
 
 app_decs = np.array(app_decs)
 
+### LOADING IN LSTS & APP DEC FOR ACTUAL EVENTS 
+file = '/home/mseth2/scratch/02_23_fluxcal_results/localizations.npz'
+with np.load(file, allow_pickle=True) as data: 
+    App_Decs = data['dec_apps']
+    LST_deg = data['lst_deg']
+
 fig, ax = plt.subplots(figsize=(9, 6))
 ax.plot(lst_list, app_decs, color='black', linestyle='--', label='PSR B0531+21 (Crab)')
+ax.scatter(LST_deg, App_Decs, color='pink', label='Detected events', alpha=0.8)
 ax.axhline(y=83.5, linestyle='-.', label='No longer visible')
 ax.axhline(y=source_dec.to_value(), label='Actual declination', color='k')
 ax.set_xlabel('Detected LST (deg)', fontsize=12)
-ax.set_ylabel('Detected Declination (deg)', fontsize=12)
+ax.set_ylabel('Apparent Declination (deg)', fontsize=12)
 ax.set_xlim(0, 24)
 ax.set_ylim(15, 105)
 ax.set_xticks(np.arange(0, 25, 3))
@@ -43,7 +50,7 @@ ax.grid(True, which='both', linestyle=':', alpha=0.6)
 ax.legend(loc='upper right', frameon=True)
 
 plt.title('Apparent Declination vs. LST', fontsize=13)
-plt.savefig('Incorrect_localization_plot.png', dpi=800)
+plt.savefig('Incorrect_localization_plot.pdf')
 plt.show()
 
 
