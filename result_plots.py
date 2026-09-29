@@ -5,41 +5,13 @@ from astropy.time import Time
 from uncertainties import unumpy as unp
 outdir = '/home/mseth2/scratch'
 
-## Which plots to generate? 
-flux_ha = False
-flux_time = False 
-flux_hist = False 
-fluence_hist = True 
-savepdf = False
-beammodel=True
-
-if beammodel:
-    beammodel_file = '/home/mseth2/scratch/TAU_A_combined.npz' #.npz, output of frb_analysis/sidelobe_analysis pipeline
-    with np.load(beammodel_file, allow_pickle=True) as bm:
-        intensity = bm['intensity_norm']
-        freqs = bm['freqs']
-        has = bm['has']
-
-    ref_freqs = [400, 500, 600, 700, 800]
-    colors = ['darkred', 'orange', 'gold', 'turquoise', 'dodgerblue']
-    plt.figure(figsize=(10, 6))
-    for f, c in zip(ref_freqs, colors):
-        freqidx = np.where(freqs==f)[0]
-        intensity_slice = intensity[freqidx,:]
-        plt.plot(has, intensity_slice, color=c, label=f)
-
-    plt.xlabel('Degrees from Meridian', fontsize=13)
-    plt.ylabel('Normalized Intensity', fontsize=13)
-    plt.show()
-    plt.savefig(f"{outdir}/holography.pdf")
-
 
 #### Load in flux calibration values ####
 #file = '/home/mseth2/scratch/02_23_fluxcal_results/fluxcal_results.npz'
 file = '/Users/meenaseth/sidelobe-flux-calibration/fluxcal_results.npz'
 widths_file = '/Users/meenaseth/sidelobe-flux-calibration/pulse_widths.npz'
 #outdir = '/home/mseth2/scratch/02_23_fluxcal_results'
-
+outdir = '/Users/meenaseth/sidelobe-flux-calibration'
 
 with np.load(file, allow_pickle=True) as data: 
     has = data['has']
@@ -60,10 +32,40 @@ with np.load(widths_file, allow_pickle=True) as data:
 
 fluxes[169] = np.nan
 
-
     
+## Which plots to generate? 
+flux_ha = False
+flux_time = False 
+flux_hist = False 
+fluence_hist = True 
+savepdf = False
+beammodel=True
 
+if beammodel:
+    beammodel_file = '/Users/meenaseth/gp_analysis/TAU_A_combined.npz' #.npz, output of frb_analysis/sidelobe_analysis pipeline
+    with np.load(beammodel_file, allow_pickle=True) as bm:
+        intensity = bm['intensity_norm']
+        freqs = bm['freqs']
+        has = bm['has']
 
+    intensity[intensity<5e-4]=np.nan
+    ref_freqs = [800, 700, 600, 500, 400.390625]
+    colors = ['dodgerblue', 'turquoise', 'orange', 'deeppink']
+    labels = ['700-800MHz', '600-700MHz', '500-600MHz', '400-500MHz']
+    plt.figure(figsize=(18, 6))
+    for n, c, l in zip(np.arange(0,4), colors, labels):
+        idx1 = np.where(freqs==ref_freqs[n])[0].item()
+        idx2 = np.where(freqs==ref_freqs[n+1])[0].item()
+        avgd_slice = np.nanmean(intensity[idx1:idx2, :], axis=0)
+        plt.plot(has, avgd_slice, linewidth=1, color=c, label=l)
+
+    avgd_all = np.nanmean(intensity, axis=0)
+    plt.plot(has, avgd_all, linewidth=3, color='gray', alpha=0.4, label='Average')
+    plt.xlabel('Degrees from Meridian', fontsize=17)
+    plt.ylabel('Normalized Intensity', fontsize=17)
+    plt.yscale('log')
+    plt.legend(fontsize='14')
+    plt.savefig(f"{outdir}/holography_avgd.pdf",format='pdf',bbox_inches='tight')
 
 
 if flux_ha:
