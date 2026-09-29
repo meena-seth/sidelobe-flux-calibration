@@ -15,8 +15,10 @@ from astropy.coordinates import SkyCoord
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from astropy.coordinates import FK5, ICRS
-import my_utils
-from my_utils import load_cascade_any, flux_to_luminosity
+import astropy.units as u
+
+#import my_utils
+#from my_utils import load_cascade_any, flux_to_luminosity
 
 sys.path.append("/home/mseth2/scratch/frb_intensity_analysis")
 import utils
@@ -38,11 +40,12 @@ Can be run with sbatch script
 '''
 
 from_images = False
-get_uncertainty=True
-get_widths=True
-get_eventids = True
-get_fluences = True
-calc_fluxha = True
+get_uncertainty=False
+get_widths=False
+get_eventids = False
+get_fluences = False
+calc_fluxha = False
+calc_decapp = True
 
 path = '/project/rpp-chime/adamdong/rfi_filtered' #Path to directory with flux calibrated .pkl files
 outdir = '/home/mseth2/scratch/02_23_fluxcal_results' #Path to save .npz file with combined results
@@ -60,6 +63,23 @@ lum_uncs = []
 widths = []
 event_ids = []
 fluences = []
+dec_apps = []
+lsts = []
+
+def flux_to_luminosity(peak_flux):
+    result = 4 * np.pi * np.square(6.171 * 10**19) * peak_flux * 10**(-19)
+    return result 
+
+
+def load_cascade_any(path: str):
+    # Allow loading for pkl files
+    if path.endswith(".pkl"):
+        with open(path, "rb") as f:
+            cascade_data = pickle.load(f)
+        return cascade_data
+    else:
+        return cascade.load_cascade_from_file(path)
+
 
 def get_peak_flux(cascade_data):
     try:
@@ -82,7 +102,7 @@ def get_HA(cascade_data):
     source_dec = float(22.0144980)
     coord = SkyCoord(source_ra, source_dec, unit="deg")
    
-    event_time, event_time_mjd, width = utils.get_cascade_time(cascade_data)
+    event_time, event_time_mjd, width, frame0_ctime = utils.get_cascade_time(cascade_data)
     cascade.event_time = event_time
     cascade.event_time_mjd = event_time_mjd
 
@@ -138,6 +158,22 @@ def get_HA(cascade_data):
         # set lower limit to true
         cascade_data.flux_lower_limit = True
         cascade_data.second_transit = True
+
+    ## For publication fig. confirming localization: 
+    ## Calculate CHIME incorrect declination. 
+
+    def get_app_dec(ha_deg, lat=location.lat.rad, dec=coord.dec.rad):
+        ha_rad = np.deg2rad(ha_deg) *u.rad
+        lat_rad = lat *u.rad
+        dec_rad = dec *u.rad
+        real_dec = np.cos(lat_rad)*np.sin(dec_rad) - np.sin(lat_rad)*np.cos(dec_rad)*np.cos(ha_deg)
+        app_dec = np.arcsin(real_dec) + lat_rad
+        return app_dec.to(u.deg)
+
+    if calc_decapp:
+        app_dec = get_app_dec(ha_deg)
+        cascade_data.dec_app = app_dec
+        cascade_data.lst = lst.hourangle
 
     #print(f"LST: {lst}, HA: {ha_deg}")
     # find out which transit it's on
@@ -239,12 +275,20 @@ for i, file in enumerate(files, 1):
 
 
         #### Save relevant data
-        has.append(cascade_data.ha_deg)
-        event_ids.append(cascade_data.eventid)
-        event_times.append(cascade_data.event_time)
-        fluxes.append(cascade_data.peak_flux)
-        fluences.append(fluence)
-        
+
+        if calc_decapp: 
+            has.append(cascade_data.ha_deg)
+            dec_apps.append(cascade_data.dec_app)
+            lsts.append(cascade_data.lst)
+
+        else:
+            has.append(cascade_data.ha_deg)
+            dec_apps.append(cascade_data.dec_app)    
+            event_ids.append(cascade_data.eventid)
+            event_times.append(cascade_data.event_time)
+            fluxes.append(cascade_data.peak_flux)
+            fluences.append(fluence)
+            
         
     except Exception as e:
         print(f"Could not load {file} due to {e}")
@@ -253,6 +297,12 @@ for i, file in enumerate(files, 1):
 print()
 
 if outdir is not None:
+    if calc_decapp:
+        np.savez(f"{outdir}/localizations.npz",
+                 has = np.array(has),
+                 dec_apps = np.array(dec_apps),
+                 lst_deg = np.array(lsts)
+                 )
     if get_widths:
         np.savez(f"{outdir}/pulse_widths.npz",
             widths=np.array(widths))
