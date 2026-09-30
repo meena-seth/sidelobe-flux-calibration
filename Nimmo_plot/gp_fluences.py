@@ -65,16 +65,31 @@ Bhat = {
 
 Popov = {
     "obs": ["Kalyazin"],
-    "freq": [0.6, 1.4],         # GHz
-    "fluence": [0.21, 1.48],          # Jy s
+    "freq": [0.6],         # GHz
+    "fluence": [0.21],          # Jy s
+    "estimate":True
+}
+
+Popov_us = {
+    "obs": ["Kalyazin"],
+    "freq": [1.4],         # GHz
+    "fluence": [1.48],          # Jy s, w=0.4us 
     "estimate":True
 }
 
 Crossley = {
     "obs": ["VLA"] * 8,
-    "freq": [0.33, 0.333, 1.34, 1.34, 1.69, 1.69, 4.765, 4.765],  # GHz
-    "flux": [1500, 200, 600, 80000, 2200, 41000, 1000, 120000],   # Jy
-    "width": [400e-6, 400e-6, 19e-6, 1.5e-6, 5e-6, 1.1e-6, 1.5e-6, 0.2e-6],
+    "freq": [0.33, 0.333],  # GHz
+    "flux": [1500, 200],   # Jy
+    "width": [400e-6, 400e-6],
+    "estimate":True
+}
+
+Crossley_ub = {
+    "obs": ["VLA"] * 8,
+    "freq": [1.34, 1.34, 1.69, 1.69, 4.765, 4.765],  # GHz
+    "flux": [600, 80000, 2200, 41000, 1000, 120000],   # Jy
+    "width": [19e-6, 1.5e-6, 5e-6, 1.1e-6, 1.5e-6, 0.2e-6],
     "estimate":True
 }
 
@@ -89,7 +104,7 @@ Jessner = {
     "obs": ["Effelsberg 100m", "Effelsberg 100m"],
     "freq": [8.5, 15.1],     # GHz
     "flux": [150000, 60000], # Jy
-    "width": [100e-6, 100e-6],    # Not specified but says envelopes tend to be ~100us, so use that.
+    "width": [1e-6, 1e-6],    # Not specified but says individual bursts can be as low as ~1us, so use that.
     "estimate":True
 }
 
@@ -117,7 +132,7 @@ Sokolowski = {
 
 ### NON-CRAB SOURCES 
 
-J2109_50 = {
+J2108_5055 = {
     "obs": ["CHIME"],
     "freq": [0.6],         # GHz
     "fluence": [20],          # Jy s
@@ -153,15 +168,15 @@ sgr1935 = {
 }
 
 
-crab_dicts = [Sallmen, Hankins2003, Cordes, Hankins2007, Bhat, Popov, Crossley, Jessner, Meyers, Bera, Sokolowski]
-crab_names = ['Sallmen 1999', 'Hankins 2003', 'Cordes 2004','Hankins 2007', 'Bhat 2007', 'Popov 2009', 
-              'Crossley 2010', 'Jessner 2010', 'Meyers 2017', 'Bera 2019', 'Sokolowski 2025']
+crab_dicts = [Sallmen, Hankins2003, Cordes, Hankins2007, Bhat, Popov, Popov_us, Crossley, Crossley_ub, Jessner, Meyers, Bera, Sokolowski]
+crab_names = ['Sallmen 1999', 'Hankins 2003', 'Cordes 2004','Hankins 2007', 'Bhat 2007', 'Popov 2009a', 'Popov 2009b'
+              'Crossley 2010a', 'Crossley 2010b', 'Jessner 2010', 'Meyers 2018', 'Bera 2019', 'Sokolowski 2025']
 
-nanoshots = ['Hankins 2003', 'Hankins 2007', 'Jessner 2010']
-microbursts = ['Sallmen 1999', 'Crossley 2010', 'Bera 2019', 'Bhat 2007', 'Popov 2009']
+nanoshots = ['Hankins 2003', 'Hankins 2007']
+microbursts = ['Crossley 2010b', 'Bera 2019', 'Popov 2009b', 'Jessner 2010']
 
-other_dicts = J2109_50, B1937_21, B0329_54, Vela, sgr1935
-other_names = ['J2019+50', 'B1937+21', 'B0329+54', 'Vela Pulsar', 'SGR1935+2154']
+other_dicts = J2108_5055, B1937_21, B0329_54, Vela, sgr1935
+other_names = ['J2018+5055', 'B1937+21', 'B0329+54', 'Vela Pulsar', 'SGR1935+2154']
 
 for dict in crab_dicts:
         try:
@@ -207,9 +222,9 @@ legend1_elements = [Line2D([0], [0], linestyle='none', marker=marker, markerface
                    ]
 legend1_elements.append(Line2D([0], [0], linestyle='none', marker='', label='(Unfilled markers \nindicate \nestimated values)'))
 
-
-legend2_elements = [Line2D([0], [0], color=color, lw=2, label=label)
-                    for color, label in zip(colors, other_names)
+legend2_markers = ['o', 'o', 'o', 'o', 'o']
+legend2_elements = [Line2D([0], [0], linestyle='none', marker=marker, markerfacecolor=color, label=label, markeredgecolor=color)
+                    for color, marker, label in zip(colors, legend2_markers, other_names)
                    ]
 
 
@@ -234,7 +249,7 @@ plt.grid('show', alpha=0.4)
 plt.xlabel('Central Observing Frequency (GHz)')
 plt.ylabel('Fluence (Jy-s)')
 
-savepdf =True
+savepdf = True
 if savepdf:
      plt.savefig('GP_fluences.pdf', format='pdf', bbox_inches='tight')
 else:
