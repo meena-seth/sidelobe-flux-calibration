@@ -166,7 +166,7 @@ def get_HA(cascade_data):
         ha_rad = np.deg2rad(ha_deg) *u.rad
         lat_rad = lat *u.rad
         dec_rad = dec *u.rad
-        real_dec = np.cos(lat_rad)*np.sin(dec_rad) - np.sin(lat_rad)*np.cos(dec_rad)*np.cos(ha_deg)
+        real_dec = np.cos(lat_rad)*np.sin(dec_rad) - np.sin(lat_rad)*np.cos(dec_rad)*np.cos(ha_rad)
         app_dec = np.arcsin(real_dec) + lat_rad
         return app_dec.to(u.deg)
 
@@ -227,10 +227,10 @@ for i, file in enumerate(files, 1):
 
         try:
             ha = cascade_data.ha_deg
-            flux = cascade_data.peak_flux
+            #flux = cascade_data.peak_flux
         except Exception as e:
             cascade_data = get_HA(cascade_data)
-            cascade_data = get_peak_flux(cascade_data)
+            #cascade_data = get_peak_flux(cascade_data)
 
         if get_widths:
             #### Get pulse widths 
@@ -278,7 +278,7 @@ for i, file in enumerate(files, 1):
 
         if calc_decapp: 
             has.append(cascade_data.ha_deg)
-            dec_apps.append(cascade_data.dec_app)
+            dec_apps.append(cascade_data.dec_app.value)
             lsts.append(cascade_data.lst)
 
         else:
@@ -293,8 +293,6 @@ for i, file in enumerate(files, 1):
     except Exception as e:
         print(f"Could not load {file} due to {e}")
         continue
-
-print()
 
 if outdir is not None:
     if calc_decapp:

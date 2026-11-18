@@ -117,7 +117,7 @@ Sokolowski = {
 
 ### NON-CRAB SOURCES 
 
-J2109_50 = {
+J2108_5055 = {
     "obs": ["CHIME"],
     "freq": [0.6],         # GHz
     "fluence": [20],          # Jy s
@@ -160,8 +160,8 @@ crab_names = ['Sallmen 1999', 'Hankins 2003', 'Cordes 2004','Hankins 2007', 'Bha
 nanoshots = ['Hankins 2003', 'Hankins 2007', 'Jessner 2010']
 microbursts = ['Sallmen 1999', 'Crossley 2010', 'Bera 2019', 'Bhat 2007', 'Popov 2009']
 
-other_dicts = J2109_50, B1937_21, B0329_54, Vela, sgr1935
-other_names = ['J2019+50', 'B1937+21', 'B0329+54', 'Vela Pulsar', 'SGR1935+2154']
+other_dicts = J2108_5055, B1937_21, B0329_54, Vela, sgr1935
+other_names = ['J2018+5055', 'B1937+21', 'B0329+54', 'Vela Pulsar', 'SGR1935+2154']
 
 for dict in crab_dicts:
         try:
